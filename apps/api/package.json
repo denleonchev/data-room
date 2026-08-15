@@ -7,6 +7,7 @@
     "dev": "nest start --watch",
     "start": "node dist/main",
     "start:prod": "prisma migrate deploy && node dist/main",
+    "postinstall": "prisma generate",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint . --max-warnings=0"
   },
@@ -16,6 +17,7 @@
     "@nestjs/core": "^10.4.6",
     "@nestjs/platform-express": "^10.4.6",
     "@prisma/client": "^5.22.0",
+    "better-auth": "^1.6.29",
     "dotenv": "^17.4.2",
     "prisma": "^5.22.0",
     "reflect-metadata": "^0.2.2"
