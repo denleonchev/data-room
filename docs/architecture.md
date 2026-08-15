@@ -177,13 +177,15 @@ Actions at all:
     build) when a push only touches `apps/api`, exits non-zero (build) when
     `apps/web` or `packages/shared` changed. Both paths are in the command, so
     a shared-only change still triggers a web rebuild.
-  - Railway: root directory `apps/api`, watch paths explicitly include
-    `packages/shared` (unlike Vercel, Railway needs this listed or a
-    shared-only change won't trigger an API redeploy), auto-deploys on push to
-    `main`. Builds via Railway's Nixpacks (auto-detects Node/pnpm, no
-    Dockerfile to write/maintain) — needs the monorepo build order (install at
-    repo root, build `packages/shared`, then build/start `apps/api`) set
-    explicitly via root directory + build/start commands. Falls back to a
+  - Railway: **no Root Directory override** — service Source stays at the repo
+    root, config lives in `railway.json` at the repo root (not inside
+    `apps/api`), and `buildCommand`/`startCommand` use `pnpm --filter <pkg>`
+    from the repo root rather than a Root-Directory-scoped `cd`/`-C`. Watch
+    paths explicitly include `packages/shared` (unlike Vercel, Railway needs this
+    listed or a shared-only change won't trigger an API redeploy). Builds via
+    Railway's Nixpacks (auto-detects Node/pnpm, no Dockerfile to write/
+    maintain) — install phase stays on Nixpacks' default, `buildCommand`
+    explicitly builds `packages/shared` then `apps/api`. Falls back to a
     hand-written Dockerfile only if Nixpacks can't handle that.
   - Migrations: `prisma migrate deploy` runs as part of Railway's start command,
     before the server boots — not a separate CI step.
