@@ -173,10 +173,14 @@ Actions at all:
   changes:
   - Vercel: root directory `apps/web`, auto-deploys on push to `main`, preview
     deployment per PR. Ignored Build Step set to
-    `git diff --quiet HEAD^ HEAD -- apps/web packages/shared` — exits 0 (skip
-    build) when a push only touches `apps/api`, exits non-zero (build) when
-    `apps/web` or `packages/shared` changed. Both paths are in the command, so
-    a shared-only change still triggers a web rebuild.
+    `git diff --quiet HEAD^ HEAD -- . ../../packages/shared` — runs with cwd =
+    Root Directory (`apps/web`), so paths are relative to that, not the repo
+    root (a repo-root-relative version of this command shipped first and
+    silently skipped every build, since `apps/web/apps/web` and
+    `apps/web/packages/shared` never exist). Exits 0 (skip build) when a push
+    only touches `apps/api`, exits non-zero (build) when `apps/web` or
+    `packages/shared` changed — both paths are in the command, so a
+    shared-only change still triggers a web rebuild.
   - Railway: **no Root Directory override** — service Source stays at the repo
     root, config lives in `railway.json` at the repo root (not inside
     `apps/api`), and `buildCommand`/`startCommand` use `pnpm --filter <pkg>`
