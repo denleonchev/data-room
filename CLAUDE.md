@@ -15,6 +15,9 @@ Rules below take precedence.
 - Package manager: pnpm.
 - Frontend data: TanStack Query (server state) + TanStack Table (headless,
   drives both list and grid view of files/folders).
+- Monorepo: pnpm workspaces, no Turborepo/Nx. `apps/web`, `apps/api`,
+  `packages/shared` (shared TS types/DTOs/zod schemas — validate once, use on
+  both sides).
 
 ## Priorities
 

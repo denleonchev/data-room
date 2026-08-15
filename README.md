@@ -22,6 +22,7 @@ See [docs/architecture.md](docs/architecture.md) for full rationale.
   cookie session (`.data.bonadev.xyz`)
 - Package manager: pnpm
 - Frontend data: TanStack Query + TanStack Table
+- Monorepo: pnpm workspaces — `apps/web`, `apps/api`, `packages/shared`
 
 ## Design decisions
 
@@ -38,6 +39,8 @@ Full rationale lives in [docs/architecture.md](docs/architecture.md). Summary:
 - pnpm as package manager
 - TanStack Table (headless) drives both list and grid views of files/folders from
   one shared sort/filter/pagination state; TanStack Query handles server state
+- pnpm workspaces monorepo (no Turborepo/Nx): `apps/web`, `apps/api`,
+  `packages/shared` for types/DTOs/zod schemas shared between frontend and backend
 
 Not yet decided (tracked in docs/architecture.md):
 

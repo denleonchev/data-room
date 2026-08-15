@@ -107,7 +107,18 @@ readable across both:
 - Package manager: **pnpm**. Content-addressable store avoids duplicating packages on
   disk, hard-links make installs faster than npm/yarn, and it blocks phantom
   dependencies (importing a package that's only a transitive dep, not a direct one).
-  Native workspaces if frontend and backend end up in one repo, no extra tooling needed.
+
+## Monorepo layout
+
+Single repo, pnpm workspaces — no Turborepo/Nx, plain workspaces are enough at this
+size and skip extra build-orchestration config for a time-boxed project.
+
+- `apps/web` — frontend (Vite SPA)
+- `apps/api` — backend (NestJS)
+- `packages/shared` — TS types/interfaces shared between both (DTOs, enums like
+  `ShareMode`/role), and zod schemas used for validation on both sides: NestJS DTOs
+  validate with the same schema the frontend uses for form validation, so the
+  contract can't drift between client and server.
 
 ## Open questions / not yet decided
 
