@@ -5,8 +5,9 @@ diligence. Full-stack app: NestJS + Postgres/Prisma backend, React frontend.
 
 ## Live demo
 
-- Frontend: TODO
-- Backend API: TODO
+- Frontend: https://data.bonadev.xyz
+- Backend API: https://api.data.bonadev.xyz — health check:
+  [`/health`](https://api.data.bonadev.xyz/health)
 
 ## Architecture
 

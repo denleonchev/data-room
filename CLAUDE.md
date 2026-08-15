@@ -44,3 +44,16 @@ list (here) or README summary needs a one-line edit to match.
 - Commits: feat|fix|refactor|chore|docs(scope): imperative
 - Scopes: api, web, infra, auth, nodes, uploads, sharing
 - Branches: type/short-description
+- Issues: one per slice of docs/roadmap.md, titled `Slice N: short description`
+  (`Slice 1: Auth`). Body sections, in this order:
+  - `## Slice` — one or two sentences: what works end-to-end once it's done.
+  - `## Scope` — `In:` what the slice covers; `Out:` what it deliberately leaves.
+  - `## PRs` — links to the slice's PRs, appended as they merge.
+  - `## Acceptance` — checklist, including error/edge-case states; ticked off
+    as the slice lands.
+  - `## Notes` — decisions worth recording, deferred work.
+- PRs: title in commit format. Body sections, in this order:
+  - `## What` — one or two sentences: what now works or changed.
+  - `## Why` — only when the decision isn't obvious: why this way, not another.
+  - `## How to test` — manual steps, or "covered by tests".
+  - `## Notes` — what was deliberately left out, what's deferred.
