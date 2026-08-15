@@ -120,6 +120,35 @@ size and skip extra build-orchestration config for a time-boxed project.
   validate with the same schema the frontend uses for form validation, so the
   contract can't drift between client and server.
 
+## CI/CD
+
+Deployment and CI are kept separate — deployment doesn't run through GitHub
+Actions at all:
+
+- **CD**: native git integrations, no custom deploy scripts. Both sides must
+  rebuild when `packages/shared` changes, not just when their own app dir
+  changes:
+  - Vercel: root directory `apps/web`, auto-deploys on push to `main`, preview
+    deployment per PR. Ignored Build Step set to
+    `git diff --quiet HEAD^ HEAD -- apps/web packages/shared` — exits 0 (skip
+    build) when a push only touches `apps/api`, exits non-zero (build) when
+    `apps/web` or `packages/shared` changed. Both paths are in the command, so
+    a shared-only change still triggers a web rebuild.
+  - Railway: root directory `apps/api`, watch paths explicitly include
+    `packages/shared` (unlike Vercel, Railway needs this listed or a
+    shared-only change won't trigger an API redeploy), auto-deploys on push to
+    `main`. Builds via Railway's Nixpacks (auto-detects Node/pnpm, no
+    Dockerfile to write/maintain) — needs the monorepo build order (install at
+    repo root, build `packages/shared`, then build/start `apps/api`) set
+    explicitly via root directory + build/start commands. Falls back to a
+    hand-written Dockerfile only if Nixpacks can't handle that.
+  - Migrations: `prisma migrate deploy` runs as part of Railway's start command,
+    before the server boots — not a separate CI step.
+- **CI**: a GitHub Actions workflow (`pnpm install` → typecheck → lint → tests)
+  runs on every PR. Even solo, work happens through PRs into `main` with branch
+  protection requiring this check to pass — catches breakage before it reaches
+  `main`, where Vercel/Railway would otherwise deploy it immediately.
+
 ## Open questions / not yet decided
 
 - Data model (Data Room / Folder / File / Share) and ERD

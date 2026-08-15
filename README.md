@@ -23,6 +23,8 @@ See [docs/architecture.md](docs/architecture.md) for full rationale.
 - Package manager: pnpm
 - Frontend data: TanStack Query + TanStack Table
 - Monorepo: pnpm workspaces — `apps/web`, `apps/api`, `packages/shared`
+- CI/CD: Vercel/Railway auto-deploy on push to `main` (native git integration);
+  GitHub Actions runs typecheck/lint/tests as a required check on PRs
 
 ## Design decisions
 
@@ -41,6 +43,8 @@ Full rationale lives in [docs/architecture.md](docs/architecture.md). Summary:
   one shared sort/filter/pagination state; TanStack Query handles server state
 - pnpm workspaces monorepo (no Turborepo/Nx): `apps/web`, `apps/api`,
   `packages/shared` for types/DTOs/zod schemas shared between frontend and backend
+- Deploys are native Vercel/Railway git integration, not a GH Actions deploy
+  step; GitHub Actions only runs CI (typecheck/lint/tests), required on PRs
 
 Not yet decided (tracked in docs/architecture.md):
 

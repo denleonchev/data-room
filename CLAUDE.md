@@ -18,6 +18,9 @@ Rules below take precedence.
 - Monorepo: pnpm workspaces, no Turborepo/Nx. `apps/web`, `apps/api`,
   `packages/shared` (shared TS types/DTOs/zod schemas — validate once, use on
   both sides).
+- CD via native Vercel/Railway git integration (no GH Actions deploy step).
+  CI (typecheck/lint/tests) is a required GitHub Actions check on PRs into
+  `main`, even solo.
 
 ## Priorities
 
