@@ -86,8 +86,9 @@ corepack enable
 pnpm install
 
 cp apps/api/.env.example apps/api/.env   # fill in DB/Supabase/auth values
+cp apps/web/.env.example apps/web/.env
 
-pnpm dev
+pnpm dev   # runs apps/api and apps/web together
 ```
 
 `apps/api` needs a Postgres connection (`DATABASE_URL`/`DIRECT_URL`) before it can do
