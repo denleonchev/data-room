@@ -8,6 +8,26 @@ diligence. Full-stack app: NestJS + Postgres/Prisma backend, React frontend.
 - Frontend: TODO
 - Backend API: TODO
 
+## Architecture
+
+Full diagram + rationale in [docs/architecture.md](docs/architecture.md).
+
+```mermaid
+flowchart TB
+    SPA["React SPA<br/>data.bonadev.xyz<br/>(Vercel)"]
+    API["NestJS API<br/>api.data.bonadev.xyz<br/>(Railway)"]
+    PG[("Postgres<br/>(Supabase)")]
+    Storage[("Storage<br/>(Supabase, private)")]
+
+    SPA -- "cookie session" --> API
+    SPA -- "signed URL<br/>upload/download" --> Storage
+    API -- "Prisma" --> PG
+    API -- "issues signed URLs" --> Storage
+```
+
+File bytes go straight from the browser to Storage via signed URLs the API
+issues — they never pass through the API itself.
+
 ## Tech stack
 
 See [docs/architecture.md](docs/architecture.md) for full rationale.

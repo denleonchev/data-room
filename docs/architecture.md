@@ -4,14 +4,49 @@ Status: work in progress. This document captures decisions made so far, in the o
 we made them. Data model, API design, sharing model, and file upload flow are not
 decided yet and will be added as separate sections later.
 
+## Diagram
+
+```mermaid
+flowchart TB
+    subgraph Client["Browser"]
+        SPA["React SPA<br/>data.bonadev.xyz"]
+    end
+
+    subgraph VercelBox["Vercel"]
+        Web["apps/web<br/>static build"]
+    end
+
+    subgraph RailwayBox["Railway"]
+        API["apps/api<br/>NestJS · api.data.bonadev.xyz"]
+    end
+
+    subgraph SupabaseBox["Supabase"]
+        Storage[("Storage<br/>private bucket")]
+        PG[("Postgres")]
+    end
+
+    Google["Google OAuth"]
+
+    SPA -- "loads app" --> Web
+    SPA -- "HTTPS + cookie<br/>.data.bonadev.xyz" --> API
+    SPA -- "PUT/GET via<br/>signed URL" --> Storage
+    API -- "Prisma" --> PG
+    API -- "service_role key,<br/>issues signed URLs" --> Storage
+    API -- "OAuth2" --> Google
+```
+
+File bytes never pass through `apps/api` — the browser talks to Storage directly
+for both upload and download, using signed URLs the backend issues after checking
+Postgres. Everything else (folders, sharing, metadata) goes through the API.
+
 ## Hosting
 
-| Component | Where | Why |
-|---|---|---|
-| Frontend | Vercel, `data.bonadev.xyz` | Recommended by the task; standard fit for a React/Next app |
-| Backend (NestJS) | Railway, `api.data.bonadev.xyz` | Simple Node deploy from git, generous free tier |
-| Database (Postgres) | Supabase | Managed, no separate provisioning needed |
-| File storage | Supabase Storage | S3-compatible, lives next to the DB, avoids standing up a separate AWS account |
+| Component           | Where                           | Why                                                                            |
+| ------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
+| Frontend            | Vercel, `data.bonadev.xyz`      | Recommended by the task; standard fit for a React/Next app                     |
+| Backend (NestJS)    | Railway, `api.data.bonadev.xyz` | Simple Node deploy from git, generous free tier                                |
+| Database (Postgres) | Supabase                        | Managed, no separate provisioning needed                                       |
+| File storage        | Supabase Storage                | S3-compatible, lives next to the DB, avoids standing up a separate AWS account |
 
 Decided against Supabase Auth even though Supabase is already in the stack: the task
 explicitly names NestJS + Postgres + Prisma as the expected stack, and rolling our own
@@ -121,6 +156,14 @@ size and skip extra build-orchestration config for a time-boxed project.
   contract can't drift between client and server.
 
 ## CI/CD
+
+```mermaid
+flowchart LR
+    PR["push to PR branch"] --> CI["GitHub Actions<br/>typecheck · lint · test"]
+    CI -- "required check passes" --> Merge["merge to main"]
+    Merge -- "apps/web or<br/>packages/shared changed" --> Vercel["Vercel<br/>auto-deploy"]
+    Merge -- "apps/api or<br/>packages/shared changed" --> Railway["Railway<br/>auto-deploy + migrate"]
+```
 
 Deployment and CI are kept separate — deployment doesn't run through GitHub
 Actions at all:
