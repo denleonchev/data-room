@@ -81,7 +81,17 @@ TODO — not designed yet.
 
 ## Setup instructions
 
-TODO — not implemented yet.
+```bash
+corepack enable
+pnpm install
+
+cp apps/api/.env.example apps/api/.env   # fill in DB/Supabase/auth values
+
+pnpm dev
+```
+
+`apps/api` needs a Postgres connection (`DATABASE_URL`/`DIRECT_URL`) before it can do
+anything beyond `/health` — no models are defined yet (see Data model section below).
 
 ## How it scales
 
