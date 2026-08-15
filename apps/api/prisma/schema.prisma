@@ -1,0 +1,13 @@
+// Data model not decided yet (see docs/architecture.md, Open questions).
+// This stub only wires up the datasource/generator so `prisma generate` and
+// `prisma db pull`/connection checks work before models are designed.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
