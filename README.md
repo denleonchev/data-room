@@ -45,11 +45,13 @@ Full rationale lives in [docs/architecture.md](docs/architecture.md). Summary:
   `packages/shared` for types/DTOs/zod schemas shared between frontend and backend
 - Deploys are native Vercel/Railway git integration, not a GH Actions deploy
   step; GitHub Actions only runs CI (typecheck/lint/tests), required on PRs
+- File storage: private Supabase bucket, object key = `fileId`, client uploads
+  directly to Storage via backend-issued signed URLs, authorization stays in
+  Postgres (no Supabase Storage RLS policies)
 
 Not yet decided (tracked in docs/architecture.md):
 
 - TODO: folder tree storage strategy for subtree size & item count aggregation
-- TODO: file upload/download flow (presigned URLs vs. proxied through backend)
 - TODO: sharing model (public link vs. permissioned, role extensibility)
 - TODO: name-conflict resolution on upload/rename
 

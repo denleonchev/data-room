@@ -21,6 +21,10 @@ Rules below take precedence.
 - CD via native Vercel/Railway git integration (no GH Actions deploy step).
   CI (typecheck/lint/tests) is a required GitHub Actions check on PRs into
   `main`, even solo.
+- File storage: private Supabase bucket, object key = `fileId` (not
+  name/path), client uploads directly to Storage via backend-issued signed
+  URLs (backend checks Postgres `Share` rows first), backend uses
+  service_role key, no Supabase Storage RLS policies.
 
 ## Priorities
 

@@ -149,10 +149,30 @@ Actions at all:
   protection requiring this check to pass — catches breakage before it reaches
   `main`, where Vercel/Railway would otherwise deploy it immediately.
 
+## File storage (Supabase Storage)
+
+- **Bucket is private**, never public. Even the "public link" share mode doesn't
+  rely on a public bucket policy — the backend checks the `Share` row in Postgres
+  and issues a short-TTL signed URL itself. Keeping authorization solely in
+  Postgres/Nest avoids running two permission systems (app logic + Supabase
+  Storage/RLS policies) that could drift apart.
+- **Object key = `fileId` (UUID)**, not the file's display name/path. Renaming or
+  moving a file in the folder tree only changes rows in Postgres; the stored
+  object never needs to move.
+- **Upload goes client → Storage directly**, not through the backend: client
+  requests a signed upload URL for a given `fileId`, PUTs the file straight to
+  Supabase Storage, then confirms completion to the backend. Keeps file bytes off
+  the Railway process (memory/bandwidth) and gives real per-file progress via the
+  upload request itself.
+- **One bucket for the whole app**, not one per Data Room — granularity of access
+  lives in Postgres rows, not in bucket structure.
+- Backend talks to Storage with the **service_role key** (server-side only, never
+  shipped to the client); no Supabase Storage RLS policies are used.
+
 ## Open questions / not yet decided
 
 - Data model (Data Room / Folder / File / Share) and ERD
 - Folder tree strategy for subtree size/count aggregation at scale
-- File upload/download flow (presigned URLs)
+- Exact upload-confirm / download-URL API endpoints (shape decided above, routes not yet)
 - Sharing model (public link vs. permissioned, role extensibility)
 - API surface
