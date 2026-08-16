@@ -13,23 +13,11 @@ export interface Breadcrumb {
   name: string;
 }
 
-/**
- * Reads that walk the tree. Both lean on `node.path` (the ids of a node's
- * ancestors) rather than on recursion down `parentId`: over 100k nodes a prefix
- * scan counts a subtree in ~21ms where the recursive walk takes ~304ms and
- * spills to temp files under the default work_mem. docs/architecture.md has the
- * measurements.
- */
 @Injectable()
 export class NodeTreeService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * What lives under this node, for the "N folders and M files will be deleted"
-   * warning. The node itself isn't counted — the question is what goes with it.
-   *
-   * Sizes join this once files carry one (slice 3).
-   */
+  /** What lives under this node, not counting the node itself. */
   async subtreeStats(nodeId: string): Promise<SubtreeStats> {
     const node = await this.load(nodeId);
 
@@ -45,10 +33,7 @@ export class NodeTreeService {
     return { folders: of("FOLDER"), files: of("FILE") };
   }
 
-  /**
-   * The trail from the Data Room down to (and including) this node, for
-   * breadcrumbs. One query: the ancestors are already named in the path.
-   */
+  /** The trail from the Data Room down to and including this node. */
   async ancestors(nodeId: string): Promise<Breadcrumb[]> {
     const node = await this.load(nodeId);
     const ids = ancestorIds(node.path);
@@ -59,8 +44,7 @@ export class NodeTreeService {
       select: { id: true, name: true },
     });
 
-    // `in` returns rows in whatever order the database likes; the path is what
-    // knows the order.
+    // `in` returns rows in whatever order it likes; the path knows the order.
     const byId = new Map(found.map((row) => [row.id, row]));
     const trail = ids
       .map((id) => byId.get(id))

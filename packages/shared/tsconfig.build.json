@@ -1,5 +1,4 @@
-// Build config: the same settings, minus the tests. tsconfig.json still covers
-// them so `typecheck` type-checks the specs; they just don't belong in dist.
+// tsconfig.json minus the specs: they are type-checked, they aren't shipped.
 {
   "extends": "./tsconfig.json",
   "exclude": ["**/*.spec.ts"]
