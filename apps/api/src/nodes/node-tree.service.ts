@@ -33,10 +33,15 @@ export class NodeTreeService {
     return { folders: of("FOLDER"), files: of("FILE") };
   }
 
-  /** The trail from the Data Room down to and including this node. */
-  async ancestors(nodeId: string): Promise<Breadcrumb[]> {
+  /**
+   * The trail down to and including this node — from the Data Room, or from
+   * `stopAtPath`'s node when given (a share root, so the public viewer's
+   * breadcrumb doesn't reveal anything above what was actually shared).
+   */
+  async ancestors(nodeId: string, stopAtPath?: string): Promise<Breadcrumb[]> {
     const node = await this.load(nodeId);
-    const ids = ancestorIds(node.path);
+    const skip = stopAtPath ? ancestorIds(stopAtPath).length : 0;
+    const ids = ancestorIds(node.path).slice(skip);
     if (ids.length === 0) return [{ id: node.id, name: node.name }];
 
     const found = await this.prisma.node.findMany({

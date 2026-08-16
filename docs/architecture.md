@@ -410,6 +410,14 @@ deletes the `Share` row when the share root itself is removed.
 | POST   | `/folders`                 | the created folder                                          |
 | PATCH  | `/nodes/:id`               | the renamed node                                            |
 | DELETE | `/nodes/:id`               | nothing (204)                                               |
+| POST   | `/shares`                  | the public link for a node (idempotent — see Sharing)       |
+| GET    | `/shares?nodeId=`          | shares on a node                                            |
+| DELETE | `/shares/:id`              | nothing (204) — revokes                                     |
+
+**`GET /s/:token/...`** (root, `nodes?parentId=`, `nodes/:id/breadcrumb`,
+`files/:id/download-url`) is the unauthenticated counterpart of the routes
+above, scoped to one share's subtree instead of the caller's ownership — see
+Sharing for its error policy.
 
 Everything is scoped to the caller: **a node owned by someone else answers 404**,
 the same as one that never existed, so the API never confirms that an id is real

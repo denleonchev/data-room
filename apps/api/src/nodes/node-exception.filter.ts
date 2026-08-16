@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from "@nestjs/common";
 import type { Response } from "express";
 import { UploadNotFoundError } from "../files/file-errors";
+import { ShareNotFoundError } from "../sharing/share-errors";
 import {
   NodeMoveIntoOwnSubtreeError,
   NodeNameConflictError,
@@ -15,7 +16,8 @@ type DomainError =
   | NodeNotFoundError
   | RootNodeError
   | TreeTooDeepError
-  | UploadNotFoundError;
+  | UploadNotFoundError
+  | ShareNotFoundError;
 
 const STATUS: Record<string, HttpStatus> = {
   NodeMoveIntoOwnSubtreeError: HttpStatus.BAD_REQUEST,
@@ -24,6 +26,7 @@ const STATUS: Record<string, HttpStatus> = {
   RootNodeError: HttpStatus.BAD_REQUEST,
   TreeTooDeepError: HttpStatus.BAD_REQUEST,
   UploadNotFoundError: HttpStatus.BAD_REQUEST,
+  ShareNotFoundError: HttpStatus.NOT_FOUND,
 };
 
 // The services speak in domain errors and know nothing about HTTP; the mapping
@@ -35,6 +38,7 @@ const STATUS: Record<string, HttpStatus> = {
   RootNodeError,
   TreeTooDeepError,
   UploadNotFoundError,
+  ShareNotFoundError,
 )
 export class NodeExceptionFilter implements ExceptionFilter {
   catch(error: DomainError, host: ArgumentsHost): void {

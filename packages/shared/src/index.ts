@@ -31,3 +31,4 @@ export * from "./node";
 export * from "./node-path";
 export * from "./node-move";
 export * from "./file-upload";
+export * from "./share";
