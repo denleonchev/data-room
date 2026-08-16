@@ -54,8 +54,9 @@ list (here) or README summary needs a one-line edit to match.
   - `## Acceptance` — checklist, including error/edge-case states; ticked off
     as the slice lands.
   - `## Notes` — decisions worth recording, deferred work.
-- PRs: title in commit format, body linking its slice issue with `Part of #N` —
-  never `Closes`, issues are closed by hand. Sections, in this order:
+- PRs: title in commit format, body always linking an issue with `Part of #N` —
+  the slice it implements, or the slice it was done under for infra and process
+  work. Never `Closes`: issues are closed by hand. Sections, in this order:
   - `## What` — one or two sentences: what now works or changed, ending with the
     issue link.
   - `## Why` — only when the decision isn't obvious: why this way, not another.
