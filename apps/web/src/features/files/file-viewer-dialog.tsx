@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { toast } from "sonner";
 import type { NodeDto } from "@data-room/shared";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,11 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-// Stands in for the file's real bytes until the wire-up PR points this at a
-// signed GET /files/:id/download-url instead — same "built against a local
-// file" step every other UI PR in this project has taken.
-const LOCAL_FILE_URL = "/sample.pdf";
+import { ApiError } from "@/features/nodes/use-node-tree";
+import { useDownloadUrl } from "./use-download-url";
 
 const uploadedAtFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
@@ -30,10 +29,23 @@ export function FileViewerDialog({
   node: NodeDto | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const isOpen = node !== null;
   const canPreview = node?.mimeType === "application/pdf";
+  const download = useDownloadUrl(node?.id, isOpen && node?.status === "READY");
+  const downloadUrl = download.data?.downloadUrl;
+
+  // Same shape as the folder-deleted-while-viewing handling in
+  // data-room-page.tsx: toast, then leave, rather than an inline
+  // file-not-found state inside the dialog.
+  useEffect(() => {
+    if (download.error instanceof ApiError && download.error.status === 404) {
+      toast.error("This file no longer exists.");
+      onOpenChange(false);
+    }
+  }, [download.error, onOpenChange]);
 
   return (
-    <Dialog open={node !== null} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{node?.name}</DialogTitle>
@@ -44,9 +56,11 @@ export function FileViewerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {canPreview ? (
+        {!downloadUrl ? (
+          <div className="h-[60vh] w-full animate-pulse rounded-md border bg-muted" />
+        ) : canPreview ? (
           <iframe
-            src={LOCAL_FILE_URL}
+            src={downloadUrl}
             title={node?.name}
             className="h-[60vh] w-full rounded-md border"
           />
@@ -60,16 +74,26 @@ export function FileViewerDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button variant="outline" asChild>
-            <a href={LOCAL_FILE_URL} target="_blank" rel="noreferrer">
+          {downloadUrl ? (
+            <Button variant="outline" asChild>
+              <a href={downloadUrl} target="_blank" rel="noreferrer">
+                Open in new tab
+              </a>
+            </Button>
+          ) : (
+            <Button variant="outline" disabled>
               Open in new tab
-            </a>
-          </Button>
-          <Button asChild>
-            <a href={LOCAL_FILE_URL} download={node?.name}>
-              Download
-            </a>
-          </Button>
+            </Button>
+          )}
+          {downloadUrl ? (
+            <Button asChild>
+              <a href={downloadUrl} download={node?.name}>
+                Download
+              </a>
+            </Button>
+          ) : (
+            <Button disabled>Download</Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
