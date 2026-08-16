@@ -29,4 +29,5 @@ export type SignUpInput = z.infer<typeof signUpSchema>;
 
 export * from "./node";
 export * from "./node-path";
+export * from "./node-move";
 export * from "./file-upload";

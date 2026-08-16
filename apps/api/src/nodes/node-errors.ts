@@ -32,6 +32,14 @@ export class TreeTooDeepError extends Error {
   }
 }
 
+/** A folder can't become its own descendant — checked before any write. */
+export class NodeMoveIntoOwnSubtreeError extends Error {
+  constructor() {
+    super("A folder can't be moved into itself or one of its own subfolders");
+    this.name = "NodeMoveIntoOwnSubtreeError";
+  }
+}
+
 const UNIQUE_VIOLATION = "P2002";
 const NAME_INDEX = "node_parentId_name_key";
 
