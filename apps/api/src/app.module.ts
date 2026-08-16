@@ -8,7 +8,6 @@ import { PrismaModule } from "./prisma/prisma.module";
 @Module({
   imports: [PrismaModule],
   controllers: [HealthController, MeController],
-  // Closed by default: routes opt out with @Public().
   providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}

@@ -3,7 +3,6 @@ export interface Health {
   service: string;
 }
 
-/** Shape of the signed-in user returned by `GET /me`. */
 export interface SessionUser {
   id: string;
   email: string;
