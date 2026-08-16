@@ -30,6 +30,7 @@ export function NodeTable({
   errorMessage,
   isRenamePending,
   onRename,
+  onMove,
   onDelete,
   onOpenFile,
 }: {
@@ -38,6 +39,7 @@ export function NodeTable({
   errorMessage: string | null;
   isRenamePending: boolean;
   onRename: (id: string, name: string) => Promise<MutationResult>;
+  onMove: (node: NodeDto) => void;
   onDelete: (node: NodeDto) => void;
   onOpenFile: (node: NodeDto) => void;
 }) {
@@ -162,6 +164,11 @@ export function NodeTable({
             <Button size="sm" variant="ghost" onClick={() => startRename(node)}>
               Rename
             </Button>
+            {node.type === "FILE" && (
+              <Button size="sm" variant="ghost" onClick={() => onMove(node)}>
+                Move
+              </Button>
+            )}
             <Button
               size="sm"
               variant="ghost"
