@@ -14,9 +14,8 @@ export type AuthenticatedRequest = Request & {
   session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 };
 
-// Registered globally (see AppModule), so every route is closed unless it carries
-// @Public(). Better Auth's own routes never reach this guard — their handler is
-// mounted as middleware, ahead of the Nest router.
+// Better Auth's own routes never reach this guard: their handler is mounted as
+// middleware, ahead of the Nest router.
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}

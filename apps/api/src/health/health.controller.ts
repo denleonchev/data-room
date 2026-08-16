@@ -4,7 +4,6 @@ import { Public } from "../auth/public.decorator";
 
 @Controller("health")
 export class HealthController {
-  // Must answer without a session: Railway and uptime checks call it anonymously.
   @Public()
   @Get()
   check(): Health {

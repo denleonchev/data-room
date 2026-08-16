@@ -3,8 +3,8 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 
-// Its own client rather than Nest's PrismaService: this module is evaluated at
-// import time, before the Nest container exists. One extra pooled connection.
+// Not Nest's PrismaService: this module is evaluated at import time, before the
+// Nest container exists.
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
@@ -19,14 +19,12 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   trustedOrigins: process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : [],
   emailAndPassword: { enabled: true },
-  // Google only when both halves are present, so local development runs without
-  // OAuth credentials instead of failing at boot.
+  // Skipped rather than half-configured, so local dev runs without OAuth keys.
   socialProviders:
     googleClientId && googleClientSecret
       ? { google: { clientId: googleClientId, clientSecret: googleClientSecret } }
       : {},
-  // Only in deployed environments: on localhost a `.data.bonadev.xyz` cookie
-  // domain would be silently dropped by the browser.
+  // Unset on localhost, where a dotted domain makes the browser drop the cookie.
   advanced: cookieDomain
     ? { crossSubDomainCookies: { enabled: true, domain: cookieDomain } }
     : {},

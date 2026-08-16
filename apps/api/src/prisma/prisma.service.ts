@@ -2,9 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 
-// Since Prisma 7 the client takes an explicit driver adapter. It gets the pooled
-// connection (DATABASE_URL, pgbouncer); DIRECT_URL is only read by Migrate,
-// through prisma.config.ts.
+// DATABASE_URL is the pooled connection; DIRECT_URL is Migrate's, not the app's.
 @Injectable()
 export class PrismaService
   extends PrismaClient
