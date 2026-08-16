@@ -6,7 +6,15 @@ export interface BreadcrumbEntry {
   name: string;
 }
 
-export function Breadcrumbs({ path }: { path: BreadcrumbEntry[] }) {
+export function Breadcrumbs({
+  path,
+  rootHref = "/",
+  folderHref = (id: string) => `/folder/${id}`,
+}: {
+  path: BreadcrumbEntry[];
+  rootHref?: string;
+  folderHref?: (id: string) => string;
+}) {
   if (path.length === 0) return null;
 
   return (
@@ -22,8 +30,8 @@ export function Breadcrumbs({ path }: { path: BreadcrumbEntry[] }) {
                   <span className="font-medium text-foreground">{node.name}</span>
                 ) : (
                   <Link
-                    // The first entry is always the Data Room itself.
-                    to={index === 0 ? "/" : `/folder/${node.id}`}
+                    // The first entry is always the share/Data Room root.
+                    to={index === 0 ? rootHref : folderHref(node.id)}
                     className="transition-colors hover:text-foreground"
                   >
                     {node.name}

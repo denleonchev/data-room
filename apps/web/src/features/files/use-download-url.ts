@@ -6,10 +6,19 @@ import { request } from "@/features/nodes/use-node-tree";
 // than reacting to a broken preview after the fact.
 const REFRESH_INTERVAL_MS = 45_000;
 
-export function useDownloadUrl(nodeId: string | undefined, enabled: boolean) {
+export function useDownloadUrl(
+  nodeId: string | undefined,
+  enabled: boolean,
+  token?: string,
+) {
   return useQuery({
-    queryKey: ["download-url", nodeId],
-    queryFn: () => request<{ downloadUrl: string }>(`/files/${nodeId}/download-url`),
+    queryKey: ["download-url", nodeId, token],
+    queryFn: () =>
+      request<{ downloadUrl: string }>(
+        token
+          ? `/s/${token}/files/${nodeId}/download-url`
+          : `/files/${nodeId}/download-url`,
+      ),
     enabled: enabled && !!nodeId,
     refetchInterval: REFRESH_INTERVAL_MS,
     staleTime: 0,

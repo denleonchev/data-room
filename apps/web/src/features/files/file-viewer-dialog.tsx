@@ -24,14 +24,16 @@ function formatFileSize(bytes: number | null): string {
 
 export function FileViewerDialog({
   node,
+  token,
   onOpenChange,
 }: {
   node: NodeDto | null;
+  token?: string;
   onOpenChange: (open: boolean) => void;
 }) {
   const isOpen = node !== null;
   const canPreview = node?.mimeType === "application/pdf";
-  const download = useDownloadUrl(node?.id, isOpen && node?.status === "READY");
+  const download = useDownloadUrl(node?.id, isOpen && node?.status === "READY", token);
   const downloadUrl = download.data?.downloadUrl;
 
   // Same shape as the folder-deleted-while-viewing handling in

@@ -31,17 +31,23 @@ export function NodeTable({
   isRenamePending,
   onRename,
   onMove,
+  onShare,
   onDelete,
   onOpenFile,
+  folderHref = (id) => `/folder/${id}`,
+  emptyMessage = 'This folder is empty. Drag files here, or use "Upload files" above, to add some.',
 }: {
   nodes: NodeDto[];
   isLoading: boolean;
   errorMessage: string | null;
   isRenamePending: boolean;
-  onRename: (id: string, name: string) => Promise<MutationResult>;
-  onMove: (node: NodeDto) => void;
-  onDelete: (node: NodeDto) => void;
+  onRename?: (id: string, name: string) => Promise<MutationResult>;
+  onMove?: (node: NodeDto) => void;
+  onShare?: (node: NodeDto) => void;
+  onDelete?: (node: NodeDto) => void;
   onOpenFile: (node: NodeDto) => void;
+  folderHref?: (id: string) => string;
+  emptyMessage?: string;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -59,6 +65,7 @@ export function NodeTable({
   }
 
   async function submitRename(id: string) {
+    if (!onRename) return;
     setRenameError(null);
     const result = await onRename(id, draftName);
     if (result.ok) {
@@ -99,7 +106,7 @@ export function NodeTable({
         }
         if (node.type === "FOLDER") {
           return (
-            <Link to={`/folder/${node.id}`} className="font-medium hover:underline">
+            <Link to={folderHref(node.id)} className="font-medium hover:underline">
               {node.name}
             </Link>
           );
@@ -161,22 +168,31 @@ export function NodeTable({
         }
         return (
           <div className="flex justify-end gap-2">
-            <Button size="sm" variant="ghost" onClick={() => startRename(node)}>
-              Rename
-            </Button>
-            {node.type === "FILE" && (
+            {onRename && (
+              <Button size="sm" variant="ghost" onClick={() => startRename(node)}>
+                Rename
+              </Button>
+            )}
+            {node.type === "FILE" && onMove && (
               <Button size="sm" variant="ghost" onClick={() => onMove(node)}>
                 Move
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              onClick={() => onDelete(node)}
-            >
-              Delete
-            </Button>
+            {onShare && (
+              <Button size="sm" variant="ghost" onClick={() => onShare(node)}>
+                Share
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => onDelete(node)}
+              >
+                Delete
+              </Button>
+            )}
           </div>
         );
       },
@@ -211,7 +227,7 @@ export function NodeTable({
   if (nodes.length === 0) {
     return (
       <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-        This folder is empty. Drag files here, or use "Upload files" above, to add some.
+        {emptyMessage}
       </div>
     );
   }
