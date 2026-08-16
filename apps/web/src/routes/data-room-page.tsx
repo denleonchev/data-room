@@ -1,64 +1,128 @@
-import { useEffect, useState } from "react";
-import { useOutletContext, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import type { NodeDto, SessionUser } from "@data-room/shared";
-import { Breadcrumbs } from "@/features/nodes/breadcrumbs";
+import { Breadcrumbs, type BreadcrumbEntry } from "@/features/nodes/breadcrumbs";
 import { DeleteDialog } from "@/features/nodes/delete-dialog";
 import { NewFolderRow } from "@/features/nodes/new-folder-row";
 import { NodeTable } from "@/features/nodes/node-table";
-import { useMockNodeTree } from "@/features/nodes/use-mock-node-tree";
+import {
+  ApiError,
+  useBreadcrumb,
+  useCreateFolder,
+  useDataRoom,
+  useDeleteNode,
+  useNodeChildren,
+  useRenameNode,
+  useSubtreeStats,
+} from "@/features/nodes/use-node-tree";
 
 export function DataRoomPage() {
   useOutletContext<SessionUser>();
   const { id: folderId } = useParams<{ id: string }>();
-  const tree = useMockNodeTree(folderId);
+  const navigate = useNavigate();
 
-  // Stands in for the query's real pending state, so a folder switch renders
-  // the loading skeleton instead of jumping straight to the new list.
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    setIsLoading(true);
-    const timeout = setTimeout(() => setIsLoading(false), 250);
-    return () => clearTimeout(timeout);
-  }, [folderId]);
+  const dataRoom = useDataRoom();
+  const currentId = folderId ?? dataRoom.data?.id;
+
+  const children = useNodeChildren(currentId);
+  const breadcrumb = useBreadcrumb(folderId);
+
+  const createFolder = useCreateFolder(currentId);
+  const rename = useRenameNode(currentId, dataRoom.data?.id);
+  const remove = useDeleteNode(currentId);
 
   const [deleteTarget, setDeleteTarget] = useState<NodeDto | null>(null);
+  const subtreeStats = useSubtreeStats(deleteTarget?.id);
 
-  if (tree.notFound) {
-    return (
-      <div className="space-y-2 rounded-md border border-dashed p-8 text-center">
-        <p className="text-sm text-muted-foreground">
-          This folder doesn't exist, or it was deleted.
-        </p>
-        <a href="/" className="text-sm font-medium underline">
-          Back to your Data Room
-        </a>
-      </div>
-    );
+  const notFound =
+    (children.error instanceof ApiError && children.error.status === 404) ||
+    (breadcrumb.error instanceof ApiError && breadcrumb.error.status === 404);
+
+  // Tracks the last folder we know still exists, so a 404 that shows up while
+  // the user is already looking at a folder (another tab deleted it) can send
+  // them to its real parent instead of always bouncing to the root.
+  const lastKnownParentId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (breadcrumb.data && breadcrumb.data.length > 0) {
+      const parent = breadcrumb.data[breadcrumb.data.length - 2];
+      lastKnownParentId.current = parent?.id;
+    }
+  }, [breadcrumb.data]);
+
+  useEffect(() => {
+    if (!notFound) return;
+    toast.error("This folder no longer exists.");
+    const parentId = lastKnownParentId.current;
+    navigate(parentId ? `/folder/${parentId}` : "/", { replace: true });
+  }, [notFound, navigate]);
+
+  async function handleCreate(name: string) {
+    try {
+      await createFolder.mutateAsync(name);
+      return { ok: true as const };
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        return { ok: false as const, error: error.message };
+      }
+      throw error;
+    }
   }
+
+  async function handleRename(id: string, name: string) {
+    try {
+      await rename.mutateAsync({ id, name });
+      return { ok: true as const };
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        return { ok: false as const, error: error.message };
+      }
+      throw error;
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    try {
+      await remove.mutateAsync(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Couldn't delete this item.");
+    }
+  }
+
+  if (notFound) return null;
+
+  const title = folderId ? breadcrumb.data?.at(-1)?.name : dataRoom.data?.name;
+  const path: BreadcrumbEntry[] | undefined = folderId
+    ? breadcrumb.data
+    : dataRoom.data
+      ? [dataRoom.data]
+      : undefined;
 
   return (
     <div className="space-y-4">
-      <Breadcrumbs path={tree.breadcrumb} />
-      <h1 className="text-xl font-semibold">{tree.currentFolder?.name}</h1>
+      <Breadcrumbs path={path ?? []} />
+      <h1 className="text-xl font-semibold">{title}</h1>
 
-      <NewFolderRow onCreate={tree.createFolder} />
+      <NewFolderRow isPending={createFolder.isPending} onCreate={handleCreate} />
 
       <NodeTable
-        nodes={tree.children}
-        isLoading={isLoading}
+        nodes={children.data ?? []}
+        isLoading={!currentId || children.isLoading}
         errorMessage={null}
-        onRename={tree.rename}
+        isRenamePending={rename.isPending}
+        onRename={handleRename}
         onDelete={setDeleteTarget}
       />
 
       <DeleteDialog
         node={deleteTarget}
-        stats={deleteTarget ? tree.subtreeStats(deleteTarget.id) : null}
+        stats={subtreeStats.data ?? null}
+        isLoadingStats={subtreeStats.isLoading}
+        isDeleting={remove.isPending}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        onConfirm={() => {
-          if (deleteTarget) tree.remove(deleteTarget.id);
-          setDeleteTarget(null);
-        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );
