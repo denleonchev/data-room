@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import type { NodeDto } from "@data-room/shared";
+import type { NodeDto, SessionUser } from "@data-room/shared";
 import { Breadcrumbs, type BreadcrumbEntry } from "@/features/nodes/breadcrumbs";
 import { NodeTable } from "@/features/nodes/node-table";
 import { FileViewerDialog } from "@/features/files/file-viewer-dialog";
 import { ApiError } from "@/features/nodes/use-node-tree";
+import { useSession } from "@/features/auth/use-session";
 import {
   useShareBreadcrumb,
   useShareChildren,
@@ -12,10 +13,10 @@ import {
 } from "@/features/sharing/use-public-share";
 import { SiteHeader } from "./site-header";
 
-function InvalidLinkNotice() {
+function InvalidLinkNotice({ user }: { user: SessionUser | null }) {
   return (
     <div className="min-h-screen">
-      <SiteHeader user={null} />
+      <SiteHeader user={user} />
       <main className="mx-auto max-w-5xl p-6">
         <div className="rounded-md border border-dashed p-12 text-center text-sm text-muted-foreground">
           This link is no longer valid.
@@ -27,6 +28,7 @@ function InvalidLinkNotice() {
 
 export function PublicSharePage() {
   const { token, nodeId } = useParams<{ token: string; nodeId?: string }>();
+  const { user } = useSession();
 
   const root = useShareRoot(token);
   const currentId = nodeId ?? root.data?.id;
@@ -38,14 +40,14 @@ export function PublicSharePage() {
   const notFound = [root.error, children.error, breadcrumb.error].some(
     (error) => error instanceof ApiError && error.status === 404,
   );
-  if (notFound) return <InvalidLinkNotice />;
+  if (notFound) return <InvalidLinkNotice user={user} />;
 
   // A share rooted on a single file has nothing else to browse — the viewer
   // is the whole page, and there's nowhere sensible for "Close" to go.
   if (root.data?.type === "FILE") {
     return (
       <div className="min-h-screen">
-        <SiteHeader user={null} />
+        <SiteHeader user={user} />
         <main className="mx-auto max-w-5xl p-6">
           <FileViewerDialog node={root.data} token={token} onOpenChange={() => {}} />
         </main>
@@ -62,7 +64,7 @@ export function PublicSharePage() {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader user={null} />
+      <SiteHeader user={user} />
       <main className="mx-auto max-w-5xl space-y-4 p-6">
         <Breadcrumbs
           path={path ?? []}
