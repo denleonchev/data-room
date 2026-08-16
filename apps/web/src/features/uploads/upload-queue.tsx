@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import type { QueuedUpload } from "./use-mock-upload-queue";
+import type { QueuedUpload } from "./use-upload-queue";
 
 const STATUS_LABEL: Record<QueuedUpload["status"], string> = {
   uploading: "Uploading…",

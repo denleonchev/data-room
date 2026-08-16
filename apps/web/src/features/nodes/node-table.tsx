@@ -90,6 +90,9 @@ export function NodeTable({
             </div>
           );
         }
+        if (node.status === "PENDING") {
+          return <span className="text-muted-foreground">{node.name}</span>;
+        }
         return node.type === "FOLDER" ? (
           <Link to={`/folder/${node.id}`} className="font-medium hover:underline">
             {node.name}
@@ -101,17 +104,21 @@ export function NodeTable({
     }),
     columnHelper.accessor("updatedAt", {
       header: "Updated",
-      cell: ({ getValue }) => (
-        <span className="text-muted-foreground">
-          {dateFormatter.format(new Date(getValue()))}
-        </span>
-      ),
+      cell: ({ row, getValue }) =>
+        row.original.status === "PENDING" ? (
+          <span className="text-muted-foreground">Uploading…</span>
+        ) : (
+          <span className="text-muted-foreground">
+            {dateFormatter.format(new Date(getValue()))}
+          </span>
+        ),
     }),
     columnHelper.display({
       id: "actions",
       header: "",
       cell: ({ row }) => {
         const node = row.original;
+        if (node.status === "PENDING") return null;
         if (editingId === node.id) {
           return (
             <div className="flex justify-end gap-2">

@@ -18,7 +18,7 @@ import {
 } from "@/features/nodes/use-node-tree";
 import { UploadDropZone } from "@/features/uploads/upload-drop-zone";
 import { UploadQueue } from "@/features/uploads/upload-queue";
-import { useMockUploadQueue } from "@/features/uploads/use-mock-upload-queue";
+import { useUploadQueue } from "@/features/uploads/use-upload-queue";
 
 export function DataRoomPage() {
   useOutletContext<SessionUser>();
@@ -38,7 +38,7 @@ export function DataRoomPage() {
   const [deleteTarget, setDeleteTarget] = useState<NodeDto | null>(null);
   const subtreeStats = useSubtreeStats(deleteTarget?.id);
 
-  const uploads = useMockUploadQueue();
+  const uploads = useUploadQueue(currentId);
 
   const notFound =
     (children.error instanceof ApiError && children.error.status === 404) ||
