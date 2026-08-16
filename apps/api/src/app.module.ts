@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_GUARD, APP_PIPE } from "@nestjs/core";
+import { ZodValidationPipe } from "nestjs-zod";
 import { HealthController } from "./health/health.controller";
 import { MeController } from "./auth/me.controller";
 import { AuthGuard } from "./auth/auth.guard";
@@ -9,6 +10,11 @@ import { NodesModule } from "./nodes/nodes.module";
 @Module({
   imports: [PrismaModule, NodesModule],
   controllers: [HealthController, MeController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: AuthGuard },
+    // Bodies and queries typed with createZodDto are parsed by their schema;
+    // anything else passes through untouched.
+    { provide: APP_PIPE, useClass: ZodValidationPipe },
+  ],
 })
 export class AppModule {}

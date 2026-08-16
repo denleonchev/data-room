@@ -29,5 +29,35 @@ export const renameNodeSchema = z.object({
   name: nodeNameSchema,
 });
 
+// Absent parentId means the caller's own Data Room.
+export const listNodesQuerySchema = z.object({
+  parentId: z.string().min(1).optional(),
+});
+
 export type CreateFolderInput = z.infer<typeof createFolderSchema>;
 export type RenameNodeInput = z.infer<typeof renameNodeSchema>;
+export type ListNodesQuery = z.infer<typeof listNodesQuerySchema>;
+
+export type NodeKind = "FOLDER" | "FILE";
+
+// What the API returns. `ownerId` and `path` stay server-side: the client has no
+// use for either, and one that grew a dependency on the path would make the
+// column harder to change.
+export interface NodeDto {
+  id: string;
+  type: NodeKind;
+  name: string;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BreadcrumbDto {
+  id: string;
+  name: string;
+}
+
+export interface SubtreeStatsDto {
+  folders: number;
+  files: number;
+}
