@@ -7,6 +7,7 @@ import { ApiError } from "./features/nodes/use-node-tree";
 import { AuthPage } from "./routes/auth-page";
 import { ProtectedLayout } from "./routes/protected-layout";
 import { DataRoomPage } from "./routes/data-room-page";
+import { PublicSharePage } from "./routes/public-share-page";
 import "./index.css";
 
 // A 4xx is never transient — retrying "not found" or "conflict" wastes the
@@ -30,6 +31,8 @@ createRoot(document.getElementById("root")!).render(
         <Routes>
           <Route path="/login" element={<AuthPage mode="sign-in" />} />
           <Route path="/signup" element={<AuthPage mode="sign-up" />} />
+          <Route path="/s/:token" element={<PublicSharePage />} />
+          <Route path="/s/:token/folder/:nodeId" element={<PublicSharePage />} />
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<DataRoomPage />} />
             <Route path="/folder/:id" element={<DataRoomPage />} />

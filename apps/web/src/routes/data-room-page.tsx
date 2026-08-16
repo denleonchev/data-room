@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import type { NodeDto, SessionUser } from "@data-room/shared";
+import { Button } from "@/components/ui/button";
 import { Breadcrumbs, type BreadcrumbEntry } from "@/features/nodes/breadcrumbs";
 import { DeleteDialog } from "@/features/nodes/delete-dialog";
 import { FileViewerDialog } from "@/features/files/file-viewer-dialog";
 import { MoveDialog } from "@/features/nodes/move-dialog";
 import { NewFolderRow } from "@/features/nodes/new-folder-row";
 import { NodeTable } from "@/features/nodes/node-table";
+import { ShareDialog } from "@/features/sharing/share-dialog";
 import {
   ApiError,
   useBreadcrumb,
@@ -43,6 +45,10 @@ export function DataRoomPage() {
   const subtreeStats = useSubtreeStats(deleteTarget?.id);
 
   const [moveTarget, setMoveTarget] = useState<NodeDto | null>(null);
+
+  const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(
+    null,
+  );
 
   const [viewingFile, setViewingFile] = useState<NodeDto | null>(null);
 
@@ -136,7 +142,18 @@ export function DataRoomPage() {
   return (
     <div className="space-y-4">
       <Breadcrumbs path={path ?? []} />
-      <h1 className="text-xl font-semibold">{title}</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="text-xl font-semibold">{title}</h1>
+        {currentId && title && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShareTarget({ id: currentId, name: title })}
+          >
+            Share
+          </Button>
+        )}
+      </div>
 
       <NewFolderRow isPending={createFolder.isPending} onCreate={handleCreate} />
 
@@ -155,6 +172,7 @@ export function DataRoomPage() {
           isRenamePending={rename.isPending}
           onRename={handleRename}
           onMove={setMoveTarget}
+          onShare={setShareTarget}
           onDelete={setDeleteTarget}
           onOpenFile={setViewingFile}
         />
@@ -175,6 +193,11 @@ export function DataRoomPage() {
         isMoving={move.isPending}
         onOpenChange={(open) => !open && setMoveTarget(null)}
         onConfirm={confirmMove}
+      />
+
+      <ShareDialog
+        node={shareTarget}
+        onOpenChange={(open) => !open && setShareTarget(null)}
       />
 
       <FileViewerDialog
