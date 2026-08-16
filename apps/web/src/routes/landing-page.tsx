@@ -17,6 +17,12 @@ export function LandingPage() {
           single folder or one file — either through a link that anyone can open
           or with named people only, and revoke that access at any time.
         </p>
+        <p className="text-muted-foreground">
+          Signing in — with an email and password, or with Google — gives Data
+          Room your name, email address and, from Google, your profile picture.
+          They identify your account and label the things you share; nothing else
+          is requested from Google, and nothing is passed on to anyone else.
+        </p>
       </div>
 
       <div className="flex gap-3">
@@ -29,11 +35,11 @@ export function LandingPage() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        <a href="/privacy.html" className="underline underline-offset-4">
+        <a href="/privacy" className="underline underline-offset-4">
           Privacy Policy
         </a>{" "}
         ·{" "}
-        <a href="/terms.html" className="underline underline-offset-4">
+        <a href="/terms" className="underline underline-offset-4">
           Terms of Service
         </a>
       </p>
