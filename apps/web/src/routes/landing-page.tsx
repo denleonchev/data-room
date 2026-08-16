@@ -5,9 +5,9 @@ export function LandingPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 p-6">
       <div className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight">Data Room</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Bonadev Data Room</h1>
         <p className="text-muted-foreground">
-          Data Room is a virtual data room for due diligence: a private place to
+          Bonadev Data Room is a virtual data room for due diligence: a private place to
           keep the documents a deal depends on. Upload PDFs, organise them into
           nested folders, and rename, move or delete them as the deal moves.
         </p>

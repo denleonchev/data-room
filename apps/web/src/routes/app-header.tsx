@@ -20,7 +20,7 @@ export function AppHeader({ user }: { user: SessionUser }) {
   return (
     <header className="border-b">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 p-4">
-        <span className="font-semibold">Data Room</span>
+        <span className="font-semibold">Bonadev Data Room</span>
         <div className="flex items-center gap-4">
           <div className="text-right leading-tight">
             <div className="text-sm font-medium">{user.name}</div>
