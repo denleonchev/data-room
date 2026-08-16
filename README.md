@@ -69,16 +69,58 @@ Full rationale lives in [docs/architecture.md](docs/architecture.md). Summary:
 - File storage: private Supabase bucket, object key = `fileId`, client uploads
   directly to Storage via backend-issued signed URLs, authorization stays in
   Postgres (no Supabase Storage RLS policies)
+- Data model: one `node` table for folders and files, a Data Room being a folder
+  without a parent; deletion is permanent and cascades down the subtree
 
 Not yet decided (tracked in docs/architecture.md):
 
-- TODO: folder tree storage strategy for subtree size & item count aggregation
-- TODO: sharing model (public link vs. permissioned, role extensibility)
+- TODO: folder tree strategy for subtree size & item count aggregation at scale
 - TODO: name-conflict resolution on upload/rename
 
 ## Data model / ERD
 
-TODO — not designed yet.
+```mermaid
+erDiagram
+    user ||--o{ node : owns
+    node ||--o{ node : contains
+    node ||--o{ share : "is shared by"
+
+    user {
+        text id PK
+        text email UK
+        text name
+    }
+    node {
+        uuid id PK
+        NodeType type "FOLDER | FILE"
+        text name
+        text ownerId FK
+        uuid parentId FK "null on a Data Room"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    share {
+        uuid id PK
+        uuid nodeId FK
+        ShareMode mode "PUBLIC_LINK"
+        ShareRole role "VIEWER"
+        text token UK "public links only"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+```
+
+A **Data Room is a folder without a parent** — one per user, enforced by a partial
+unique index — so it needs no entity of its own, and sharing a room, a folder or a
+file is one code path rather than three. Folders and files live in **one table**
+discriminated by `type`, which lets the subtree walk behind counts, sizes, deletion
+and access checks be written once. Names are unique within a folder and
+case-sensitive; deleting a folder deletes its subtree for good, by cascade.
+
+`share` ships with the tree but is not read until the sharing slices: `mode` and
+`role` start at `PUBLIC_LINK` / `VIEWER`, with restricted shares and per-user roles
+as declared extension points. Rationale for each of these:
+[docs/architecture.md](docs/architecture.md#data-model).
 
 ## Setup instructions
 
@@ -93,7 +135,8 @@ pnpm dev   # runs apps/api and apps/web together
 ```
 
 `apps/api` needs a Postgres connection (`DATABASE_URL`/`DIRECT_URL`) before it can do
-anything beyond `/health` — no models are defined yet (see Data model section below).
+anything beyond `/health`. Apply the schema with
+`pnpm --filter @data-room/api exec prisma migrate deploy`.
 
 ## How it scales
 

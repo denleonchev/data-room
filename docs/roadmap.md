@@ -95,11 +95,13 @@ across reloads, and sign out. Everything else in the app is behind that.
 navigate in and out with breadcrumbs, rename a folder, and delete a folder after
 being told what goes with it.
 
-1. **migration** — the whole model, decided once: `DataRoom` (owner → user),
-   `Node` (one table for files and folders, discriminated by `type`,
-   self-referencing `parentId`, unique index on `(parentId, name)` among live
-   rows), and the `Share` table shape. Sharing ships in S6/S7, but its table
-   lands here so the model is never remodelled mid-build.
+1. **migration** — the whole model, decided once: `Node` (one table for files and
+   folders, discriminated by `type`, self-referencing `parentId`, unique index on
+   `(parentId, name)`) and the `Share` table shape. A Data Room is a folder
+   without a parent — one per user, held by a partial unique index — so there is
+   no separate entity for it. Deletion is permanent, the subtree following by
+   cascade. Sharing ships in S6/S7, but its table lands here so the model is never
+   remodelled mid-build.
 2. **logic** — name normalization and conflict rules, plus the recursive subtree
    walk behind counts and sizes. One `Node` table means that walk already counts
    files correctly before any file exists. Tested against a seeded tree.

@@ -1,8 +1,8 @@
 # Architecture
 
 Status: work in progress. This document captures decisions made so far, in the order
-we made them. Data model, API design, sharing model, and file upload flow are not
-decided yet and will be added as separate sections later.
+we made them. API design and the file upload flow are not decided yet and will be
+added as separate sections later.
 
 ## Diagram
 
@@ -218,10 +218,85 @@ Actions at all:
 - Backend talks to Storage with the **service_role key** (server-side only, never
   shipped to the client); no Supabase Storage RLS policies are used.
 
+## Data model
+
+```mermaid
+erDiagram
+    user ||--o{ node : owns
+    node ||--o{ node : contains
+    node ||--o{ share : "is shared by"
+
+    user {
+        text id PK
+        text email UK
+        text name
+    }
+    node {
+        uuid id PK
+        NodeType type "FOLDER | FILE"
+        text name
+        text ownerId FK
+        uuid parentId FK "null on a Data Room"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    share {
+        uuid id PK
+        uuid nodeId FK
+        ShareMode mode "PUBLIC_LINK"
+        ShareRole role "VIEWER"
+        text token UK "public links only"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+```
+
+**A Data Room is a folder without a parent.** There is no separate `DataRoom`
+entity: it would hold nothing but its owner, and the owner sits on `node.ownerId`
+directly, where every access check reads it without a join. The task itself
+describes a Data Room as "the top-level folder or drive", and the model says the
+same thing. One room per user, created on first sign-in and never created or
+deleted by hand; a partial unique index (`ownerId` where `parentId IS NULL`)
+enforces that in the database, which also settles the race when a user signs in
+from two tabs at once. The room is renamable, and it can be shared — sharing a
+Data Room, a folder or a single file is one requirement, not three.
+
+**Folders and files share one table**, discriminated by `type`. The subtree walk
+behind counts, sizes, deletion and access checks is then written once and already
+counts files correctly before the first file exists. The price is columns that only
+files use (`size`, `mimeType`, `storageKey` arrive in slice 3) sitting empty on
+folder rows.
+
+**`type` has no `ROOM` value**, even though a room is a distinct thing in the UI.
+A room behaves like a folder in every operation — it holds children, it is a move
+target, it can be renamed, shared and measured — and differs only in two
+prohibitions: it can't be deleted and can't be moved, both checked as "the node has
+no parent". A third type would invite `type = FOLDER` checks that silently exclude
+the room, and the folder picker in the move dialog is exactly where that bug would
+land.
+
+**Deletion is permanent**, with the subtree following through a self-referencing
+`ON DELETE CASCADE`. Soft deletion would buy a trash bin the task doesn't ask for,
+and charge for it with a "hide deleted rows" filter in every query — including the
+share access path, where forgetting it leaks a deleted file to a link recipient.
+"Someone deleted the folder you're viewing" is handled where it belongs: a 404, a
+toast, and a move to the parent.
+
+**Names are unique per folder and case-sensitive** — `Report.pdf` and `report.pdf`
+coexist, as they do in Google Drive and on Linux. Normalization is a trim, nothing
+more. A case-insensitive rule would need an index over `lower(name)`, which Prisma
+cannot express in the schema and would report as drift on every later migration.
+
+**`Share` ships with the tree**, in slice 2's migration, though nothing reads it
+before slice 6 — so the model is decided once instead of being remodelled halfway.
+A share always points at a node, which is what keeps "share the whole Data Room"
+from becoming a second branch in the access rules. `mode` and `role` start with one
+value each: `RESTRICTED` and the grantee columns arrive in slice 7, `EDITOR` is the
+extension point for per-user roles. Adding a value to an enum is not a remodelling.
+Revoking a share deletes its row.
+
 ## Open questions / not yet decided
 
-- Data model (Data Room / Folder / File / Share) and ERD
 - Folder tree strategy for subtree size/count aggregation at scale
 - Exact upload-confirm / download-URL API endpoints (shape decided above, routes not yet)
-- Sharing model (public link vs. permissioned, role extensibility)
 - API surface
