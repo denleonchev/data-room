@@ -40,14 +40,20 @@ export type ListNodesQuery = z.infer<typeof listNodesQuerySchema>;
 
 export type NodeKind = "FOLDER" | "FILE";
 
+export type FileUploadStatus = "PENDING" | "READY";
+
 // What the API returns. `ownerId` and `path` stay server-side: the client has no
 // use for either, and one that grew a dependency on the path would make the
-// column harder to change.
+// column harder to change. size/mimeType/status are null on a folder — a file
+// carries them from the moment its upload starts (slice 3).
 export interface NodeDto {
   id: string;
   type: NodeKind;
   name: string;
   parentId: string | null;
+  size: number | null;
+  mimeType: string | null;
+  status: FileUploadStatus | null;
   createdAt: string;
   updatedAt: string;
 }

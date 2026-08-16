@@ -27,6 +27,13 @@ export const uploadFileSchema = z.object({
 
 export type UploadFileInput = z.infer<typeof uploadFileSchema>;
 
+// The folder the upload lands in, same shape createFolderSchema already uses.
+export const createFileUploadSchema = uploadFileSchema.extend({
+  parentId: z.string().min(1),
+});
+
+export type CreateFileUploadInput = z.infer<typeof createFileUploadSchema>;
+
 /**
  * Names that appear more than once in a single drop, so the upload queue can
  * flag the second occurrence before a signed URL is ever requested for a file
