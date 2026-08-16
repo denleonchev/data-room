@@ -7,9 +7,10 @@ import { AuthGuard } from "./auth/auth.guard";
 import { PrismaModule } from "./prisma/prisma.module";
 import { NodesModule } from "./nodes/nodes.module";
 import { FilesModule } from "./files/files.module";
+import { SharingModule } from "./sharing/sharing.module";
 
 @Module({
-  imports: [PrismaModule, NodesModule, FilesModule],
+  imports: [PrismaModule, NodesModule, FilesModule, SharingModule],
   controllers: [HealthController, MeController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

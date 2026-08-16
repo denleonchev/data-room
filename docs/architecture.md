@@ -380,6 +380,24 @@ value each: `RESTRICTED` and the grantee columns arrive in slice 7, `EDITOR` is 
 extension point for per-user roles. Adding a value to an enum is not a remodelling.
 Revoking a share deletes its row.
 
+## Sharing
+
+**A public link's token is 32 random bytes, base64url-encoded** — not the
+share row's own id and not a sequential value, so a token can't be narrowed
+down by guessing or enumeration the way an id could be. Generated once at
+share creation; nothing rotates or expires it — revoking means deleting the
+`Share` row, not invalidating a token in place.
+
+**An unknown, malformed, or revoked token, and a node outside the shared
+subtree, all answer the same `404`** — the same principle already applied to
+node ownership (see API surface below): which of those three it actually was
+isn't information a caller without access gets. `AccessService.loadWithinShare`
+is the one place every public read path asks this, reusing the same
+self-or-descendant path-prefix check the move endpoint already validates
+against (`isSelfOrDescendant`, `packages/shared/src/node-move.ts`) — a node
+whose ancestor was deleted is simply gone too, by the same cascade that
+deletes the `Share` row when the share root itself is removed.
+
 ## API surface
 
 | Method | Route                      | Returns                                                     |
