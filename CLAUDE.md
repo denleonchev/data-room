@@ -41,6 +41,8 @@ list (here) or README summary needs a one-line edit to match.
 
 ## Conventions
 
+- Never commit, push, or open a PR unless explicitly told to. Leave finished work
+  in the working tree and say it's ready. Branches may be created freely.
 - Commits: feat|fix|refactor|chore|docs(scope): imperative
 - Scopes: api, web, infra, auth, nodes, uploads, sharing
 - Branches: type/short-description
