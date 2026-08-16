@@ -1,8 +1,8 @@
 # Architecture
 
 Status: work in progress. This document captures decisions made so far, in the order
-we made them. API design and the file upload flow are not decided yet and will be
-added as separate sections later.
+we made them. The file upload flow is not decided yet and will be added as a
+separate section later.
 
 ## Diagram
 
@@ -284,11 +284,11 @@ in slashes (`/roomId/legalId/`, `/` on a Data Room) — so "what is inside this
 folder" is a prefix scan rather than a recursive walk down `parentId`. Measured on
 100k nodes in a local Postgres with default settings:
 
-| | recursive CTE over `parentId` | prefix scan over `path` |
-| --- | --- | --- |
-| count a 100k-node subtree | 304 ms | **21 ms** |
-| count a 10k-node subtree | 140 ms | **2.5 ms** |
-| move a 10k-node subtree | free (one column) | 250 ms (one `UPDATE`) |
+|                           | recursive CTE over `parentId` | prefix scan over `path` |
+| ------------------------- | ----------------------------- | ----------------------- |
+| count a 100k-node subtree | 304 ms                        | **21 ms**               |
+| count a 10k-node subtree  | 140 ms                        | **2.5 ms**              |
+| move a 10k-node subtree   | free (one column)             | 250 ms (one `UPDATE`)   |
 
 The recursion is slower than the row count alone suggests: under the default 4 MB
 `work_mem` its working table spills ~27 MB to temp files, and Supabase's free tier
@@ -297,7 +297,7 @@ still six times the prefix scan, and not a setting we control in production.
 
 Three consequences worth knowing. The index has to be
 `(path text_pattern_ops, type)`: without `text_pattern_ops` a `LIKE` prefix can't
-use the index at all and reads the whole table, which is *worse* than the
+use the index at all and reads the whole table, which is _worse_ than the
 recursion it replaces, and carrying `type` is what makes counting an index-only
 scan. The column costs 153 bytes per row (~15 MB per 100k nodes), while its index
 stays around 1 MB because siblings share a path and btree deduplicates it. And
@@ -333,7 +333,37 @@ value each: `RESTRICTED` and the grantee columns arrive in slice 7, `EDITOR` is 
 extension point for per-user roles. Adding a value to an enum is not a remodelling.
 Revoking a share deletes its row.
 
+## API surface
+
+| Method | Route                      | Returns                                                     |
+| ------ | -------------------------- | ----------------------------------------------------------- |
+| GET    | `/me`                      | the signed-in user                                          |
+| GET    | `/data-room`               | the caller's Data Room, created on first call               |
+| GET    | `/nodes?parentId=`         | a folder's children; without the parameter, the Data Room's |
+| GET    | `/nodes/:id/breadcrumb`    | the trail from the Data Room down to the node               |
+| GET    | `/nodes/:id/subtree-stats` | `{ folders, files }` for the delete warning                 |
+| POST   | `/folders`                 | the created folder                                          |
+| PATCH  | `/nodes/:id`               | the renamed node                                            |
+| DELETE | `/nodes/:id`               | nothing (204)                                               |
+
+Everything is scoped to the caller: **a node owned by someone else answers 404**,
+the same as one that never existed, so the API never confirms that an id is real
+to a stranger. A name already taken in the folder answers 409 and is never
+silently renamed — the user picked a name, and a rename they didn't ask for is
+harder to notice than an error. Deleting a Data Room answers 400: there is no way
+to create one, so there is nothing to restore it with.
+
+The Data Room is created on first read rather than during sign-up: it keeps the
+API independent of Better Auth's hooks and works for accounts that predate the
+feature. Two tabs racing for it is settled by the partial unique index, not by
+application locking.
+
+Request bodies are parsed by the same zod schemas the browser's forms use, via
+`nestjs-zod`. Nest's usual class-validator would mean a second copy of every rule,
+free to drift from the first — a form accepting a name the server rejects is
+exactly the kind of UX seam this project is graded on.
+
 ## Open questions / not yet decided
 
 - Exact upload-confirm / download-URL API endpoints (shape decided above, routes not yet)
-- API surface
+- Listing pagination once a folder holds tens of thousands of rows
