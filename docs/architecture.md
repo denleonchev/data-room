@@ -193,10 +193,14 @@ Actions at all:
     hand-written Dockerfile only if Nixpacks can't handle that.
   - Migrations: `prisma migrate deploy` runs as part of Railway's start command,
     before the server boots — not a separate CI step.
-- **CI**: a GitHub Actions workflow (`pnpm install` → typecheck → lint → tests)
-  runs on every PR. Even solo, work happens through PRs into `main` with branch
-  protection requiring this check to pass — catches breakage before it reaches
-  `main`, where Vercel/Railway would otherwise deploy it immediately.
+- **CI**: a GitHub Actions workflow (`pnpm install` → build → typecheck → lint →
+  tests) runs on every PR. The tests are unit tests over dependency-free code —
+  name rules, path arithmetic — so CI needs no database. Tests that need a real
+  Postgres arrive with the sharing rules, where a silent mistake shows someone
+  else's documents and is worth a service container. Even solo, work happens
+  through PRs into `main` with branch protection requiring this check to pass —
+  catches breakage before it reaches `main`, where Vercel/Railway would otherwise
+  deploy it immediately.
 
 ## File storage (Supabase Storage)
 
@@ -275,6 +279,40 @@ no parent". A third type would invite `type = FOLDER` checks that silently exclu
 the room, and the folder picker in the move dialog is exactly where that bug would
 land.
 
+**Ancestry is materialized in `node.path`** — the ids of every ancestor, wrapped
+in slashes (`/roomId/legalId/`, `/` on a Data Room) — so "what is inside this
+folder" is a prefix scan rather than a recursive walk down `parentId`. Measured on
+100k nodes in a local Postgres with default settings:
+
+| | recursive CTE over `parentId` | prefix scan over `path` |
+| --- | --- | --- |
+| count a 100k-node subtree | 304 ms | **21 ms** |
+| count a 10k-node subtree | 140 ms | **2.5 ms** |
+| move a 10k-node subtree | free (one column) | 250 ms (one `UPDATE`) |
+
+The recursion is slower than the row count alone suggests: under the default 4 MB
+`work_mem` its working table spills ~27 MB to temp files, and Supabase's free tier
+is exactly that environment. Raising `work_mem` to 64 MB brought it to 125 ms —
+still six times the prefix scan, and not a setting we control in production.
+
+Three consequences worth knowing. The index has to be
+`(path text_pattern_ops, type)`: without `text_pattern_ops` a `LIKE` prefix can't
+use the index at all and reads the whole table, which is *worse* than the
+recursion it replaces, and carrying `type` is what makes counting an index-only
+scan. The column costs 153 bytes per row (~15 MB per 100k nodes), while its index
+stays around 1 MB because siblings share a path and btree deduplicates it. And
+because a path duplicates what `parentId` already says, the two can drift: the
+node service is the only writer, and it keeps them in step inside one transaction
+— chosen over a database trigger for the same reason we skipped Supabase Storage
+policies, one set of rules in one place.
+
+Nesting is capped at 32 levels (`MAX_TREE_DEPTH`): each level adds an id plus a
+separator to an indexed value, and a btree key tops out near 2.7 KB.
+
+If subtree counts ever get hot enough that even 21 ms matters, the next step is
+cached counters on folder rows, maintained on write — an additive migration, not a
+remodelling.
+
 **Deletion is permanent**, with the subtree following through a self-referencing
 `ON DELETE CASCADE`. Soft deletion would buy a trash bin the task doesn't ask for,
 and charge for it with a "hide deleted rows" filter in every query — including the
@@ -297,6 +335,5 @@ Revoking a share deletes its row.
 
 ## Open questions / not yet decided
 
-- Folder tree strategy for subtree size/count aggregation at scale
 - Exact upload-confirm / download-URL API endpoints (shape decided above, routes not yet)
 - API surface

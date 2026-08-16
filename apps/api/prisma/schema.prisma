@@ -105,6 +105,12 @@ model Node {
   parentId  String?
   parent    Node?    @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children  Node[]   @relation("NodeChildren")
+  // Ids of every ancestor, e.g. "/roomId/legalId/" — "/" on a Data Room. Kept in
+  // step with parentId by the node service, and the reason subtree queries are a
+  // prefix scan instead of a recursive walk (docs/architecture.md has the
+  // numbers). Its index is written by hand in the migration: Prisma cannot
+  // express the text_pattern_ops the LIKE depends on.
+  path      String
   shares    Share[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
