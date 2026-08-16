@@ -18,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/signup" element={<AuthPage mode="sign-up" />} />
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<DataRoomPage />} />
+            <Route path="/folder/:id" element={<DataRoomPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
