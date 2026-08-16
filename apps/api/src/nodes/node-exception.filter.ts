@@ -2,6 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from "@nestjs/commo
 import type { Response } from "express";
 import { UploadNotFoundError } from "../files/file-errors";
 import {
+  NodeMoveIntoOwnSubtreeError,
   NodeNameConflictError,
   NodeNotFoundError,
   RootNodeError,
@@ -9,6 +10,7 @@ import {
 } from "./node-errors";
 
 type DomainError =
+  | NodeMoveIntoOwnSubtreeError
   | NodeNameConflictError
   | NodeNotFoundError
   | RootNodeError
@@ -16,6 +18,7 @@ type DomainError =
   | UploadNotFoundError;
 
 const STATUS: Record<string, HttpStatus> = {
+  NodeMoveIntoOwnSubtreeError: HttpStatus.BAD_REQUEST,
   NodeNameConflictError: HttpStatus.CONFLICT,
   NodeNotFoundError: HttpStatus.NOT_FOUND,
   RootNodeError: HttpStatus.BAD_REQUEST,
@@ -26,6 +29,7 @@ const STATUS: Record<string, HttpStatus> = {
 // The services speak in domain errors and know nothing about HTTP; the mapping
 // lives here once instead of in a try/catch per route.
 @Catch(
+  NodeMoveIntoOwnSubtreeError,
   NodeNameConflictError,
   NodeNotFoundError,
   RootNodeError,

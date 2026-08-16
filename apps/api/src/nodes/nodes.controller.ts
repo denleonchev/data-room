@@ -17,7 +17,7 @@ import type { AuthenticatedRequest } from "../auth/auth.guard";
 import { NodeExceptionFilter } from "./node-exception.filter";
 import { NodeService } from "./node.service";
 import { NodeTreeService } from "./node-tree.service";
-import { CreateFolderDto, ListNodesQueryDto, RenameNodeDto, toNodeDto } from "./node.dto";
+import { CreateFolderDto, ListNodesQueryDto, UpdateNodeDto, toNodeDto } from "./node.dto";
 
 @Controller()
 @UseFilters(NodeExceptionFilter)
@@ -68,12 +68,12 @@ export class NodesController {
   }
 
   @Patch("nodes/:id")
-  async rename(
+  async update(
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
-    @Body() body: RenameNodeDto,
+    @Body() body: UpdateNodeDto,
   ): Promise<NodeDto> {
-    return toNodeDto(await this.nodes.rename(request.session.user.id, id, body.name));
+    return toNodeDto(await this.nodes.update(request.session.user.id, id, body));
   }
 
   @Delete("nodes/:id")

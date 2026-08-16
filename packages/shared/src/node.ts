@@ -25,9 +25,16 @@ export const createFolderSchema = z.object({
   name: nodeNameSchema,
 });
 
-export const renameNodeSchema = z.object({
-  name: nodeNameSchema,
-});
+// A PATCH can rename, move (parentId), or both in one request — the folder
+// picker and the inline-rename field both post to the same route.
+export const updateNodeSchema = z
+  .object({
+    name: nodeNameSchema.optional(),
+    parentId: z.string().min(1).optional(),
+  })
+  .refine((data) => data.name !== undefined || data.parentId !== undefined, {
+    message: "Provide a name or a destination folder",
+  });
 
 // Absent parentId means the caller's own Data Room.
 export const listNodesQuerySchema = z.object({
@@ -35,7 +42,7 @@ export const listNodesQuerySchema = z.object({
 });
 
 export type CreateFolderInput = z.infer<typeof createFolderSchema>;
-export type RenameNodeInput = z.infer<typeof renameNodeSchema>;
+export type UpdateNodeInput = z.infer<typeof updateNodeSchema>;
 export type ListNodesQuery = z.infer<typeof listNodesQuerySchema>;
 
 export type NodeKind = "FOLDER" | "FILE";
