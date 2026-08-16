@@ -7,3 +7,7 @@ export interface UploadUrlDto {
   nodeId: string;
   signedUrl: string;
 }
+
+export interface DownloadUrlDto {
+  downloadUrl: string;
+}
