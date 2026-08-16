@@ -138,6 +138,8 @@ pnpm dev   # runs apps/api and apps/web together
 anything beyond `/health`. Apply the schema with
 `pnpm --filter @data-room/api exec prisma migrate deploy`.
 
+`pnpm test` runs the unit tests; they need no database.
+
 ## How it scales
 
 TODO — answer once the data model is decided:

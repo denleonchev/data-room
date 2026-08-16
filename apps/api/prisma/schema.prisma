@@ -92,10 +92,8 @@ enum ShareRole {
   VIEWER
 }
 
-// Folders and files in one table. A node without a parent is a Data Room: the
-// tree's root, one per user, enforced by a partial unique index Prisma can't
-// express (see the migration). A room is renamable but never deleted or moved —
-// those two rules live in the service layer.
+// A node without a parent is a Data Room. Prisma can't express the partial
+// unique index that keeps it to one per user — it is in the migration by hand.
 model Node {
   id        String   @id @default(uuid(7))
   type      NodeType
@@ -105,29 +103,28 @@ model Node {
   parentId  String?
   parent    Node?    @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children  Node[]   @relation("NodeChildren")
+  // Ids of every ancestor, "/roomId/legalId/", kept in step with parentId by
+  // the node service. Its index needs text_pattern_ops, which Prisma can't
+  // express — it is in the migration by hand.
+  path      String
   shares    Share[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Names are unique per folder and case-sensitive. The index's leading column
-  // also serves listing a folder's children, so parentId needs no index of its
-  // own.
+  // The leading column also serves listing a folder's children, so parentId
+  // needs no index of its own.
   @@unique([parentId, name])
   @@index([ownerId])
   @@map("node")
 }
 
-// Ships with the tree so the model is decided once; nothing reads it before
-// slice 6. A share always points at a node, so sharing the whole Data Room is
-// a share of its root folder.
 model Share {
   id        String    @id @default(uuid(7))
   nodeId    String
   node      Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
   mode      ShareMode
   role      ShareRole @default(VIEWER)
-  // Only public links carry a token; restricted shares (slice 7) identify their
-  // grantee instead. Postgres allows many NULLs under a unique index.
+  // Only public links carry a token; restricted shares identify their grantee.
   token     String?   @unique
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
