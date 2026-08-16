@@ -269,7 +269,9 @@ Data Room, a folder or a single file is one requirement, not three.
 behind counts, sizes, deletion and access checks is then written once and already
 counts files correctly before the first file exists. The price is columns that only
 files use (`size`, `mimeType`, `storageKey` arrive in slice 3) sitting empty on
-folder rows.
+folder rows. A file also carries `status` (`PENDING` while the row exists but the
+upload to Storage hasn't been confirmed yet, `READY` once it has) — the state a
+pending-upload row is in before the client PUTs its bytes and confirms.
 
 **`type` has no `ROOM` value**, even though a room is a distinct thing in the UI.
 A room behaves like a folder in every operation — it holds children, it is a move

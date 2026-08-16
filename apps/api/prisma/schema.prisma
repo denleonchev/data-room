@@ -92,24 +92,35 @@ enum ShareRole {
   VIEWER
 }
 
+enum FileStatus {
+  PENDING
+  READY
+}
+
 // A node without a parent is a Data Room. Prisma can't express the partial
 // unique index that keeps it to one per user — it is in the migration by hand.
 model Node {
-  id        String   @id @default(uuid(7))
-  type      NodeType
-  name      String
-  ownerId   String
-  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  parentId  String?
-  parent    Node?    @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
-  children  Node[]   @relation("NodeChildren")
+  id         String      @id @default(uuid(7))
+  type       NodeType
+  name       String
+  ownerId    String
+  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  parentId   String?
+  parent     Node?       @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children   Node[]      @relation("NodeChildren")
   // Ids of every ancestor, "/roomId/legalId/", kept in step with parentId by
   // the node service. Its index needs text_pattern_ops, which Prisma can't
   // express — it is in the migration by hand.
-  path      String
-  shares    Share[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  path       String
+  // File-only columns (slice 3): empty on folder rows, same tradeoff as the
+  // one-table design already takes elsewhere.
+  size       Int?
+  mimeType   String?
+  storageKey String?     @unique
+  status     FileStatus?
+  shares     Share[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   // The leading column also serves listing a folder's children, so parentId
   // needs no index of its own.

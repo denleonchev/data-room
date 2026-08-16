@@ -96,6 +96,9 @@ erDiagram
         text name
         text ownerId FK
         uuid parentId FK "null on a Data Room"
+        int size "files only"
+        text mimeType "files only"
+        FileStatus status "PENDING | READY, files only"
         timestamp createdAt
         timestamp updatedAt
     }
