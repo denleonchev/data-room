@@ -6,9 +6,10 @@ import { MeController } from "./auth/me.controller";
 import { AuthGuard } from "./auth/auth.guard";
 import { PrismaModule } from "./prisma/prisma.module";
 import { NodesModule } from "./nodes/nodes.module";
+import { FilesModule } from "./files/files.module";
 
 @Module({
-  imports: [PrismaModule, NodesModule],
+  imports: [PrismaModule, NodesModule, FilesModule],
   controllers: [HealthController, MeController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

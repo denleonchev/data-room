@@ -1,8 +1,7 @@
 # Architecture
 
 Status: work in progress. This document captures decisions made so far, in the order
-we made them. The file upload flow is not decided yet and will be added as a
-separate section later.
+we made them.
 
 ## Diagram
 
@@ -221,6 +220,24 @@ Actions at all:
   lives in Postgres rows, not in bucket structure.
 - Backend talks to Storage with the **service_role key** (server-side only, never
   shipped to the client); no Supabase Storage RLS policies are used.
+- **The client PUTs to the signed URL directly with `XMLHttpRequest`**, not the
+  Supabase SDK's `uploadToSignedUrl()` helper: that helper wraps `fetch`, which
+  has no upload-progress event, and per-file progress is a task requirement.
+  `createSignedUploadUrl()`'s response already includes a self-contained URL
+  (token embedded as a query param) that a plain PUT can hit — confirmed against
+  Supabase's own OpenAPI spec — so the SDK is a backend-only dependency;
+  `apps/web` never needs it.
+- **Completion re-derives the size from Storage**, not the client-reported value
+  the upload-url request carried — `POST /files/:id/complete` lists the object
+  and stores its real byte count, and treats a missing object as "hasn't
+  uploaded yet" rather than blindly trusting the PUT happened. Supabase's signed
+  upload URLs carry no per-token size limit of their own, so the 50 MB cap from
+  `packages/shared` is enforced client-side and at creation time; nothing yet
+  re-checks the actual uploaded bytes against that cap at completion — a known
+  gap, not built in slice 3.
+- **A pending row that's never completed is swept lazily**, on the next read of
+  its folder, once it's older than 24h — no scheduler, reusing the read path
+  that already decides what a folder contains.
 
 ## Upload validation and name conflicts
 

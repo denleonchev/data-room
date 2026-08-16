@@ -19,6 +19,9 @@ export function toNodeDto(node: Node): NodeDto {
     type: node.type,
     name: node.name,
     parentId: node.parentId,
+    size: node.size,
+    mimeType: node.mimeType,
+    status: node.status,
     createdAt: node.createdAt.toISOString(),
     updatedAt: node.updatedAt.toISOString(),
   };

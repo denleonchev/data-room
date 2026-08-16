@@ -19,6 +19,12 @@ import {
 
 const DEFAULT_ROOM_NAME = "My Data Room";
 
+// A pending upload that never completed (tab closed, network died) shouldn't
+// accumulate forever. Swept lazily here rather than on a schedule — no cron
+// dependency, and this is the one place "what's in this folder" is already
+// decided.
+const ORPHANED_UPLOAD_TTL_MS = 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class NodeService {
   constructor(private readonly prisma: PrismaService) {}
@@ -55,6 +61,15 @@ export class NodeService {
     const parent = parentId
       ? await this.load(userId, parentId)
       : await this.roomFor(userId);
+
+    await this.prisma.node.deleteMany({
+      where: {
+        parentId: parent.id,
+        type: "FILE",
+        status: "PENDING",
+        createdAt: { lt: new Date(Date.now() - ORPHANED_UPLOAD_TTL_MS) },
+      },
+    });
 
     return this.prisma.node.findMany({
       where: { parentId: parent.id },
