@@ -49,7 +49,8 @@ Each slice below is written as its PR sequence, in this shape:
    on mocks they're visible immediately, against a live API only if you break it
    on purpose.
 5. **wire up** — the two sides connected, checked by hand in production. Where
-   CORS, date formats, and error codes surface. Carries `Closes #N`.
+   CORS, date formats, and error codes surface. The PR after which the slice's
+   issue can be closed.
 
 Not every slice has all five.
 

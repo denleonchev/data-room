@@ -41,6 +41,8 @@ list (here) or README summary needs a one-line edit to match.
 
 ## Conventions
 
+- Never commit, push, or open a PR unless explicitly told to. Leave finished work
+  in the working tree and say it's ready. Branches may be created freely.
 - Commits: feat|fix|refactor|chore|docs(scope): imperative
 - Scopes: api, web, infra, auth, nodes, uploads, sharing
 - Branches: type/short-description
@@ -52,8 +54,11 @@ list (here) or README summary needs a one-line edit to match.
   - `## Acceptance` — checklist, including error/edge-case states; ticked off
     as the slice lands.
   - `## Notes` — decisions worth recording, deferred work.
-- PRs: title in commit format. Body sections, in this order:
-  - `## What` — one or two sentences: what now works or changed.
+- PRs: title in commit format, body always linking an issue with `Part of #N` —
+  the slice it implements, or the slice it was done under for infra and process
+  work. Never `Closes`: issues are closed by hand. Sections, in this order:
+  - `## What` — one or two sentences: what now works or changed, ending with the
+    issue link.
   - `## Why` — only when the decision isn't obvious: why this way, not another.
   - `## How to test` — manual steps, or "covered by tests".
   - `## Notes` — what was deliberately left out, what's deferred.
