@@ -27,6 +27,16 @@ export function LandingPage() {
           <Link to="/login">Sign in</Link>
         </Button>
       </div>
+
+      <p className="text-sm text-muted-foreground">
+        <a href="/privacy.html" className="underline underline-offset-4">
+          Privacy Policy
+        </a>{" "}
+        ·{" "}
+        <a href="/terms.html" className="underline underline-offset-4">
+          Terms of Service
+        </a>
+      </p>
     </main>
   );
 }
