@@ -21,21 +21,23 @@ export function useShareRoot(token: string | undefined) {
 export function useShareChildren(
   token: string | undefined,
   parentId: string | undefined,
+  enabled = true,
 ) {
   return useQuery({
     queryKey: ["share-children", token, parentId],
     queryFn: () => fetchShareChildren(token!, parentId),
-    enabled: !!token,
+    enabled: enabled && !!token,
   });
 }
 
 export function useShareBreadcrumb(
   token: string | undefined,
   nodeId: string | undefined,
+  enabled = true,
 ) {
   return useQuery({
     queryKey: ["share-breadcrumb", token, nodeId],
     queryFn: () => fetchShareBreadcrumb(token!, nodeId!),
-    enabled: !!token && !!nodeId,
+    enabled: enabled && !!token && !!nodeId,
   });
 }

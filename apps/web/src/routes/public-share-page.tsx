@@ -31,9 +31,13 @@ export function PublicSharePage() {
   const { user } = useSession();
 
   const root = useShareRoot(token);
+  // Don't ask for a file's "children" — the endpoint 404s (a file can't be
+  // listed), and that 404 would otherwise get mistaken for the whole link
+  // being invalid before we've even confirmed the root is a folder.
+  const isFolder = root.data?.type === "FOLDER";
   const currentId = nodeId ?? root.data?.id;
-  const children = useShareChildren(token, currentId);
-  const breadcrumb = useShareBreadcrumb(token, nodeId ? currentId : undefined);
+  const children = useShareChildren(token, currentId, isFolder);
+  const breadcrumb = useShareBreadcrumb(token, nodeId ? currentId : undefined, isFolder);
 
   const [viewingFile, setViewingFile] = useState<NodeDto | null>(null);
 
