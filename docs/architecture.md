@@ -222,6 +222,28 @@ Actions at all:
 - Backend talks to Storage with the **service_role key** (server-side only, never
   shipped to the client); no Supabase Storage RLS policies are used.
 
+## Upload validation and name conflicts
+
+- **Type and size are checked client-side before any request goes out**, with a
+  `packages/shared` zod schema (`uploadFileSchema`) the browser and, later, the
+  `POST /files/upload-url` endpoint both apply — one schema, so a file the form
+  accepts is never one the API then rejects. Type is `application/pdf` only ("PDF
+  is enough" per the task); size is capped at 50 MB per file — generous for
+  due-diligence documents, including large scanned contracts, but tight enough
+  that the check catches a real mistake (a video dragged in by accident) rather
+  than being decorative.
+- **A name conflict on upload is rejected, never silently resolved** —
+  `Report.pdf` uploaded into a folder that already has one gets a 409, same as a
+  folder name collision (slice 2). Files share the `node` table and its
+  `(parentId, name)` unique index with folders, so this isn't new server-side
+  work, just the existing rule applying to a second `type`.
+- **A batch drop can collide with itself**, something a single `POST /folders`
+  never had to handle: two files named `Report.pdf` dropped together would both
+  hit the same 409 from the server, one after wasting a signed URL. Caught
+  client-side instead, before any request: `findDuplicateNamesInBatch` flags the
+  second occurrence in the queue immediately. Case-sensitive, matching the name
+  rule itself (`Report.pdf` and `report.pdf` are different names).
+
 ## Data model
 
 ```mermaid
