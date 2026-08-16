@@ -16,6 +16,9 @@ import {
   useRenameNode,
   useSubtreeStats,
 } from "@/features/nodes/use-node-tree";
+import { UploadDropZone } from "@/features/uploads/upload-drop-zone";
+import { UploadQueue } from "@/features/uploads/upload-queue";
+import { useMockUploadQueue } from "@/features/uploads/use-mock-upload-queue";
 
 export function DataRoomPage() {
   useOutletContext<SessionUser>();
@@ -34,6 +37,8 @@ export function DataRoomPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<NodeDto | null>(null);
   const subtreeStats = useSubtreeStats(deleteTarget?.id);
+
+  const uploads = useMockUploadQueue();
 
   const notFound =
     (children.error instanceof ApiError && children.error.status === 404) ||
@@ -107,14 +112,23 @@ export function DataRoomPage() {
 
       <NewFolderRow isPending={createFolder.isPending} onCreate={handleCreate} />
 
-      <NodeTable
-        nodes={children.data ?? []}
-        isLoading={!currentId || children.isLoading}
-        errorMessage={null}
-        isRenamePending={rename.isPending}
-        onRename={handleRename}
-        onDelete={setDeleteTarget}
+      <UploadQueue
+        items={uploads.items}
+        onCancel={uploads.cancel}
+        onRetry={uploads.retry}
+        onDismiss={uploads.dismiss}
       />
+
+      <UploadDropZone onFilesSelected={uploads.addFiles}>
+        <NodeTable
+          nodes={children.data ?? []}
+          isLoading={!currentId || children.isLoading}
+          errorMessage={null}
+          isRenamePending={rename.isPending}
+          onRename={handleRename}
+          onDelete={setDeleteTarget}
+        />
+      </UploadDropZone>
 
       <DeleteDialog
         node={deleteTarget}

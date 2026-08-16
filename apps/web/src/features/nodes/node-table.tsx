@@ -186,7 +186,7 @@ export function NodeTable({
   if (nodes.length === 0) {
     return (
       <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-        This folder is empty.
+        This folder is empty. Drag files here, or use "Upload files" above, to add some.
       </div>
     );
   }
