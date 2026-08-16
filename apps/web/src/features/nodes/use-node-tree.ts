@@ -127,7 +127,18 @@ export function useMoveNode(currentFolderId: string | undefined) {
   return useMutation({
     mutationFn: ({ id, parentId }: { id: string; parentId: string }) =>
       patchMove(id, parentId),
-    onSuccess: (_data, { parentId }) => {
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: ["nodes", currentFolderId] });
+      const previous = queryClient.getQueryData<NodeDto[]>(["nodes", currentFolderId]);
+      queryClient.setQueryData<NodeDto[]>(["nodes", currentFolderId], (nodes) =>
+        nodes?.filter((node) => node.id !== id),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      queryClient.setQueryData(["nodes", currentFolderId], context?.previous);
+    },
+    onSettled: (_data, _err, { parentId }) => {
       queryClient.invalidateQueries({ queryKey: ["nodes", currentFolderId] });
       queryClient.invalidateQueries({ queryKey: ["nodes", parentId] });
     },
@@ -138,7 +149,18 @@ export function useDeleteNode(currentFolderId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteNode(id),
-    onSuccess: (_data, id) => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["nodes", currentFolderId] });
+      const previous = queryClient.getQueryData<NodeDto[]>(["nodes", currentFolderId]);
+      queryClient.setQueryData<NodeDto[]>(["nodes", currentFolderId], (nodes) =>
+        nodes?.filter((node) => node.id !== id),
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      queryClient.setQueryData(["nodes", currentFolderId], context?.previous);
+    },
+    onSettled: (_data, _err, id) => {
       queryClient.invalidateQueries({ queryKey: ["nodes", currentFolderId] });
       queryClient.invalidateQueries({ queryKey: ["subtree-stats", id] });
     },

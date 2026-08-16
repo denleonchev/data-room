@@ -100,6 +100,14 @@ export function DataRoomPage() {
       await move.mutateAsync({ id: moveTarget.id, parentId: destinationId });
       setMoveTarget(null);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        // The destination itself is gone — nothing to keep the dialog open
+        // for, unlike a name conflict the user could resolve by picking
+        // another folder.
+        toast.error("That destination no longer exists.");
+        setMoveTarget(null);
+        return;
+      }
       toast.error(error instanceof ApiError ? error.message : "Couldn't move this file.");
     }
   }
