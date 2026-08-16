@@ -39,15 +39,26 @@ const fetchDataRoom = () => request<NodeDto>("/data-room");
 const fetchChildren = (parentId?: string) =>
   request<NodeDto[]>(parentId ? `/nodes?parentId=${parentId}` : "/nodes");
 
-const fetchBreadcrumb = (id: string) => request<BreadcrumbDto[]>(`/nodes/${id}/breadcrumb`);
+const fetchBreadcrumb = (id: string) =>
+  request<BreadcrumbDto[]>(`/nodes/${id}/breadcrumb`);
 
-const fetchSubtreeStats = (id: string) => request<SubtreeStats>(`/nodes/${id}/subtree-stats`);
+const fetchSubtreeStats = (id: string) =>
+  request<SubtreeStats>(`/nodes/${id}/subtree-stats`);
 
 const postFolder = (parentId: string, name: string) =>
-  request<NodeDto>("/folders", { method: "POST", body: JSON.stringify({ parentId, name }) });
+  request<NodeDto>("/folders", {
+    method: "POST",
+    body: JSON.stringify({ parentId, name }),
+  });
 
 const patchRename = (id: string, name: string) =>
   request<NodeDto>(`/nodes/${id}`, { method: "PATCH", body: JSON.stringify({ name }) });
+
+const patchMove = (id: string, parentId: string) =>
+  request<NodeDto>(`/nodes/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ parentId }),
+  });
 
 const deleteNode = (id: string) => request<void>(`/nodes/${id}`, { method: "DELETE" });
 
@@ -92,7 +103,10 @@ export function useCreateFolder(currentFolderId: string | undefined) {
   });
 }
 
-export function useRenameNode(currentFolderId: string | undefined, roomId: string | undefined) {
+export function useRenameNode(
+  currentFolderId: string | undefined,
+  roomId: string | undefined,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) => patchRename(id, name),
@@ -104,6 +118,18 @@ export function useRenameNode(currentFolderId: string | undefined, roomId: strin
       if (id === roomId) {
         queryClient.invalidateQueries({ queryKey: ["data-room"] });
       }
+    },
+  });
+}
+
+export function useMoveNode(currentFolderId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, parentId }: { id: string; parentId: string }) =>
+      patchMove(id, parentId),
+    onSuccess: (_data, { parentId }) => {
+      queryClient.invalidateQueries({ queryKey: ["nodes", currentFolderId] });
+      queryClient.invalidateQueries({ queryKey: ["nodes", parentId] });
     },
   });
 }

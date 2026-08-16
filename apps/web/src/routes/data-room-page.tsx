@@ -5,6 +5,7 @@ import type { NodeDto, SessionUser } from "@data-room/shared";
 import { Breadcrumbs, type BreadcrumbEntry } from "@/features/nodes/breadcrumbs";
 import { DeleteDialog } from "@/features/nodes/delete-dialog";
 import { FileViewerDialog } from "@/features/files/file-viewer-dialog";
+import { MoveDialog } from "@/features/nodes/move-dialog";
 import { NewFolderRow } from "@/features/nodes/new-folder-row";
 import { NodeTable } from "@/features/nodes/node-table";
 import {
@@ -13,6 +14,7 @@ import {
   useCreateFolder,
   useDataRoom,
   useDeleteNode,
+  useMoveNode,
   useNodeChildren,
   useRenameNode,
   useSubtreeStats,
@@ -34,10 +36,13 @@ export function DataRoomPage() {
 
   const createFolder = useCreateFolder(currentId);
   const rename = useRenameNode(currentId, dataRoom.data?.id);
+  const move = useMoveNode(currentId);
   const remove = useDeleteNode(currentId);
 
   const [deleteTarget, setDeleteTarget] = useState<NodeDto | null>(null);
   const subtreeStats = useSubtreeStats(deleteTarget?.id);
+
+  const [moveTarget, setMoveTarget] = useState<NodeDto | null>(null);
 
   const [viewingFile, setViewingFile] = useState<NodeDto | null>(null);
 
@@ -89,13 +94,25 @@ export function DataRoomPage() {
     }
   }
 
+  async function confirmMove(destinationId: string) {
+    if (!moveTarget) return;
+    try {
+      await move.mutateAsync({ id: moveTarget.id, parentId: destinationId });
+      setMoveTarget(null);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Couldn't move this file.");
+    }
+  }
+
   async function confirmDelete() {
     if (!deleteTarget) return;
     try {
       await remove.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Couldn't delete this item.");
+      toast.error(
+        error instanceof ApiError ? error.message : "Couldn't delete this item.",
+      );
     }
   }
 
@@ -129,6 +146,7 @@ export function DataRoomPage() {
           errorMessage={null}
           isRenamePending={rename.isPending}
           onRename={handleRename}
+          onMove={setMoveTarget}
           onDelete={setDeleteTarget}
           onOpenFile={setViewingFile}
         />
@@ -141,6 +159,14 @@ export function DataRoomPage() {
         isDeleting={remove.isPending}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         onConfirm={confirmDelete}
+      />
+
+      <MoveDialog
+        node={moveTarget}
+        room={dataRoom.data ?? null}
+        isMoving={move.isPending}
+        onOpenChange={(open) => !open && setMoveTarget(null)}
+        onConfirm={confirmMove}
       />
 
       <FileViewerDialog
