@@ -36,4 +36,13 @@ export class StorageService {
     const object = data.find((item) => item.name === objectKey);
     return object?.metadata?.size ?? null;
   }
+
+  /** A short-lived URL the browser GETs the file's bytes from directly. */
+  async createSignedDownloadUrl(objectKey: string, expiresInSeconds: number): Promise<string> {
+    const { data, error } = await this.client.storage
+      .from(this.bucket)
+      .createSignedUrl(objectKey, expiresInSeconds);
+    if (error) throw error;
+    return data.signedUrl;
+  }
 }

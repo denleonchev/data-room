@@ -18,6 +18,11 @@ import { NodeService } from "../nodes/node.service";
 import { UploadNotFoundError } from "./file-errors";
 import type { UploadUrlDto } from "./file.dto";
 
+// Short enough to match "short-TTL" — long enough to start loading a large
+// PDF. A URL that expires while the viewer stays open is re-requested by the
+// UI, not solved by a longer TTL here.
+const DOWNLOAD_URL_TTL_SECONDS = 60;
+
 @Injectable()
 export class FileService {
   constructor(
@@ -87,5 +92,17 @@ export class FileService {
       where: { id: nodeId },
       data: { status: "READY", size },
     });
+  }
+
+  /**
+   * Owner-only for now — S6's share viewers will extend this same check to a
+   * valid share-token holder, which is why it stays a single call site.
+   */
+  async createDownloadUrl(userId: string, nodeId: string): Promise<string> {
+    const node = await this.nodes.load(userId, nodeId);
+    if (node.type !== "FILE" || node.status !== "READY") {
+      throw new UploadNotFoundError(nodeId);
+    }
+    return this.storage.createSignedDownloadUrl(node.storageKey!, DOWNLOAD_URL_TTL_SECONDS);
   }
 }

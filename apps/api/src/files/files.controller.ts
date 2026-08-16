@@ -1,9 +1,9 @@
-import { Body, Controller, Param, Post, Req, UseFilters } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Req, UseFilters } from "@nestjs/common";
 import type { NodeDto } from "@data-room/shared";
 import { toNodeDto } from "../nodes/node.dto";
 import { NodeExceptionFilter } from "../nodes/node-exception.filter";
 import type { AuthenticatedRequest } from "../auth/auth.guard";
-import { CreateFileUploadDto, type UploadUrlDto } from "./file.dto";
+import { CreateFileUploadDto, type DownloadUrlDto, type UploadUrlDto } from "./file.dto";
 import { FileService } from "./file.service";
 
 @Controller("files")
@@ -25,5 +25,13 @@ export class FilesController {
     @Param("id") id: string,
   ): Promise<NodeDto> {
     return toNodeDto(await this.files.completeUpload(request.session.user.id, id));
+  }
+
+  @Get(":id/download-url")
+  async downloadUrl(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string,
+  ): Promise<DownloadUrlDto> {
+    return { downloadUrl: await this.files.createDownloadUrl(request.session.user.id, id) };
   }
 }
