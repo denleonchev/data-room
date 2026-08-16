@@ -10,6 +10,12 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // @data-room/shared is built as CommonJS (apps/api consumes it that way), and
+  // linked workspace packages skip the commonjs plugin unless listed here.
+  build: {
+    commonjsOptions: { include: [/packages\/shared/, /node_modules/] },
+  },
+  optimizeDeps: { include: ["@data-room/shared"] },
   server: {
     port: 5173,
   },
