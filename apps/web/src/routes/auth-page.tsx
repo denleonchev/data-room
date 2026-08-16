@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { AuthForm } from "@/features/auth/auth-form";
 import { useSession } from "@/features/auth/use-session";
+import { SiteHeader } from "./site-header";
 
 export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   const isSignUp = mode === "sign-up";
@@ -21,30 +22,33 @@ export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>{isSignUp ? "Create your account" : "Sign in"}</CardTitle>
-          <CardDescription>
-            {isSignUp
-              ? "Your Data Room is private until you share it."
-              : "Welcome back to your Data Room."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <AuthForm mode={mode} />
-          <p className="text-center text-sm text-muted-foreground">
-            {isSignUp ? "Already have an account? " : "No account yet? "}
-            <Link
-              to={isSignUp ? "/login" : "/signup"}
-              state={location.state}
-              className="underline underline-offset-4"
-            >
-              {isSignUp ? "Sign in" : "Create one"}
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    </main>
+    <div className="min-h-screen">
+      <SiteHeader user={null} />
+      <main className="flex items-center justify-center p-6 pt-24">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle>{isSignUp ? "Create your account" : "Sign in"}</CardTitle>
+            <CardDescription>
+              {isSignUp
+                ? "Your Data Room is private until you share it."
+                : "Welcome back to your Data Room."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <AuthForm mode={mode} />
+            <p className="text-center text-sm text-muted-foreground">
+              {isSignUp ? "Already have an account? " : "No account yet? "}
+              <Link
+                to={isSignUp ? "/login" : "/signup"}
+                state={location.state}
+                className="underline underline-offset-4"
+              >
+                {isSignUp ? "Sign in" : "Create one"}
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
   );
 }
