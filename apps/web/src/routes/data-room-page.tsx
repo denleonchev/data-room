@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import type { NodeDto, SessionUser } from "@data-room/shared";
 import { Breadcrumbs, type BreadcrumbEntry } from "@/features/nodes/breadcrumbs";
 import { DeleteDialog } from "@/features/nodes/delete-dialog";
+import { FileViewerDialog } from "@/features/files/file-viewer-dialog";
 import { NewFolderRow } from "@/features/nodes/new-folder-row";
 import { NodeTable } from "@/features/nodes/node-table";
 import {
@@ -37,6 +38,8 @@ export function DataRoomPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<NodeDto | null>(null);
   const subtreeStats = useSubtreeStats(deleteTarget?.id);
+
+  const [viewingFile, setViewingFile] = useState<NodeDto | null>(null);
 
   const uploads = useUploadQueue(currentId);
 
@@ -127,6 +130,7 @@ export function DataRoomPage() {
           isRenamePending={rename.isPending}
           onRename={handleRename}
           onDelete={setDeleteTarget}
+          onOpenFile={setViewingFile}
         />
       </UploadDropZone>
 
@@ -137,6 +141,11 @@ export function DataRoomPage() {
         isDeleting={remove.isPending}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         onConfirm={confirmDelete}
+      />
+
+      <FileViewerDialog
+        node={viewingFile}
+        onOpenChange={(open) => !open && setViewingFile(null)}
       />
     </div>
   );

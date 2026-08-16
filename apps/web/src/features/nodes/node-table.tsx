@@ -31,6 +31,7 @@ export function NodeTable({
   isRenamePending,
   onRename,
   onDelete,
+  onOpenFile,
 }: {
   nodes: NodeDto[];
   isLoading: boolean;
@@ -38,6 +39,7 @@ export function NodeTable({
   isRenamePending: boolean;
   onRename: (id: string, name: string) => Promise<MutationResult>;
   onDelete: (node: NodeDto) => void;
+  onOpenFile: (node: NodeDto) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -93,12 +95,21 @@ export function NodeTable({
         if (node.status === "PENDING") {
           return <span className="text-muted-foreground">{node.name}</span>;
         }
-        return node.type === "FOLDER" ? (
-          <Link to={`/folder/${node.id}`} className="font-medium hover:underline">
+        if (node.type === "FOLDER") {
+          return (
+            <Link to={`/folder/${node.id}`} className="font-medium hover:underline">
+              {node.name}
+            </Link>
+          );
+        }
+        return (
+          <button
+            type="button"
+            onClick={() => onOpenFile(node)}
+            className="font-medium hover:underline"
+          >
             {node.name}
-          </Link>
-        ) : (
-          <span>{node.name}</span>
+          </button>
         );
       },
     }),
