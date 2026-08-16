@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useSession } from "@/features/auth/use-session";
-import { AppHeader } from "./app-header";
+import { SiteHeader } from "./site-header";
 import { LandingPage } from "./landing-page";
 
 export function ProtectedLayout() {
@@ -27,7 +27,7 @@ export function ProtectedLayout() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader user={user} />
+      <SiteHeader user={user} />
       <main className="mx-auto max-w-5xl p-6">
         <Outlet context={user} />
       </main>

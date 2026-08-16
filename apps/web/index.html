@@ -11,39 +11,31 @@
     />
   </head>
   <body>
-    <!-- React replaces this on mount. It stays in the served HTML so the page
-         still names the app and states its purpose without JavaScript — which is
-         what Google's OAuth branding review reads. -->
-    <div id="root">
-      <main class="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 p-6">
-        <div class="space-y-3">
-          <h1 class="text-3xl font-semibold tracking-tight">Bonadev Data Room</h1>
-          <p class="text-muted-foreground">
-            Bonadev Data Room is a virtual data room for due diligence: a private place
-            to keep the documents a deal depends on. Upload PDFs, organise them
-            into nested folders, and rename, move or delete them as the deal
-            moves.
-          </p>
-          <p class="text-muted-foreground">
-            Everything you upload stays private to your account until you decide
-            otherwise. When you need to let someone in, share the whole room, a
-            single folder or one file — either through a link that anyone can
-            open or with named people only, and revoke that access at any time.
-          </p>
-          <p class="text-muted-foreground">
-            Signing in — with an email and password, or with Google — gives Data
-            Room your name, email address and, from Google, your profile picture.
-            They identify your account and label the things you share; nothing
-            else is requested from Google, and nothing is passed on to anyone
-            else.
-          </p>
-        </div>
-        <p class="text-sm text-muted-foreground">
-          <a href="/privacy">Privacy Policy</a> ·
-          <a href="/terms">Terms of Service</a>
-        </p>
-      </main>
-    </div>
+    <div id="root"></div>
+    <!-- Never rendered in a real browser: the app draws the same words itself.
+         It is here because Google's OAuth branding review reads the served HTML
+         without running JavaScript, and an empty document reads as a page that
+         explains nothing. -->
+    <noscript>
+      <h1>Bonadev Data Room</h1>
+      <p>
+        Bonadev Data Room is a virtual data room for due diligence: a private
+        place to keep the documents a deal depends on. Upload PDFs, organise them
+        into nested folders, and share a room, a folder or a single file with the
+        people who need it — through a link or with named people only — and
+        revoke that access at any time.
+      </p>
+      <p>
+        Signing in — with an email and password, or with Google — gives Bonadev
+        Data Room your name, email address and, from Google, your profile
+        picture. Nothing else is requested from Google, and nothing is passed on
+        to anyone else.
+      </p>
+      <p>
+        <a href="/privacy">Privacy Policy</a> ·
+        <a href="/terms">Terms of Service</a>
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
