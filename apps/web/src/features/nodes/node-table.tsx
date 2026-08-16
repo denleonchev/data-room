@@ -17,7 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { MutationResult } from "./use-mock-node-tree";
+import { cn } from "@/lib/utils";
+import type { MutationResult } from "./use-node-tree";
 
 const columnHelper = createColumnHelper<NodeDto>();
 
@@ -27,13 +28,15 @@ export function NodeTable({
   nodes,
   isLoading,
   errorMessage,
+  isRenamePending,
   onRename,
   onDelete,
 }: {
   nodes: NodeDto[];
   isLoading: boolean;
   errorMessage: string | null;
-  onRename: (id: string, name: string) => MutationResult;
+  isRenamePending: boolean;
+  onRename: (id: string, name: string) => Promise<MutationResult>;
   onDelete: (node: NodeDto) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -51,8 +54,9 @@ export function NodeTable({
     setRenameError(null);
   }
 
-  function submitRename(id: string) {
-    const result = onRename(id, draftName);
+  async function submitRename(id: string) {
+    setRenameError(null);
+    const result = await onRename(id, draftName);
     if (result.ok) {
       setEditingId(null);
       setRenameError(null);
@@ -77,6 +81,7 @@ export function NodeTable({
                   if (event.key === "Enter") submitRename(node.id);
                   if (event.key === "Escape") cancelRename();
                 }}
+                disabled={isRenamePending}
                 className="h-8"
               />
               {renameError && (
@@ -110,11 +115,26 @@ export function NodeTable({
         if (editingId === node.id) {
           return (
             <div className="flex justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={cancelRename}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={cancelRename}
+                disabled={isRenamePending}
+              >
                 Cancel
               </Button>
-              <Button size="sm" onClick={() => submitRename(node.id)}>
-                Save
+              <Button
+                size="sm"
+                onClick={() => submitRename(node.id)}
+                disabled={isRenamePending}
+                className="relative"
+              >
+                <span className={cn(isRenamePending && "opacity-0")}>Save</span>
+                {isRenamePending && (
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  </span>
+                )}
               </Button>
             </div>
           );

@@ -1,9 +1,12 @@
 import { Fragment } from "react";
 import { Link } from "react-router-dom";
-import type { NodeDto } from "@data-room/shared";
-import { ROOT_ID } from "./mock-nodes";
 
-export function Breadcrumbs({ path }: { path: NodeDto[] }) {
+export interface BreadcrumbEntry {
+  id: string;
+  name: string;
+}
+
+export function Breadcrumbs({ path }: { path: BreadcrumbEntry[] }) {
   if (path.length === 0) return null;
 
   return (
@@ -19,7 +22,8 @@ export function Breadcrumbs({ path }: { path: NodeDto[] }) {
                   <span className="font-medium text-foreground">{node.name}</span>
                 ) : (
                   <Link
-                    to={node.id === ROOT_ID ? "/" : `/folder/${node.id}`}
+                    // The first entry is always the Data Room itself.
+                    to={index === 0 ? "/" : `/folder/${node.id}`}
                     className="transition-colors hover:text-foreground"
                   >
                     {node.name}
