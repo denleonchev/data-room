@@ -47,18 +47,23 @@ list (here) or README summary needs a one-line edit to match.
 - Scopes: api, web, infra, auth, nodes, uploads, sharing
 - Branches: type/short-description
 - Issues: one per slice of docs/roadmap.md, titled `Slice N: short description`
-  (`Slice 1: Auth`). Body sections, in this order:
+  (`Slice 1: Auth`). Keep every section tight — these are size caps, not
+  targets to fill. Body sections, in this order:
   - `## Slice` — one or two sentences: what works end-to-end once it's done.
-  - `## Scope` — `In:` what the slice covers; `Out:` what it deliberately leaves.
-  - `## PRs` — links to the slice's PRs, appended as they merge.
+  - `## Scope` — `In:` what the slice covers; `Out:` what it deliberately
+    leaves. One line each, items comma-separated, not a sentence per item.
   - `## Acceptance` — checklist, including error/edge-case states; ticked off
-    as the slice lands.
-  - `## Notes` — decisions worth recording, deferred work.
+    as the slice lands. One line per item.
+  - `## Notes` — decisions worth recording, deferred work. Two sentences max.
 - PRs: title in commit format, body always linking an issue with `Part of #N` —
   the slice it implements, or the slice it was done under for infra and process
-  work. Never `Closes`: issues are closed by hand. Sections, in this order:
+  work. Never `Closes`: issues are closed by hand. Keep every section tight —
+  these are size caps, not targets to fill. Sections, in this order:
   - `## What` — one or two sentences: what now works or changed, ending with the
     issue link.
   - `## Why` — only when the decision isn't obvious: why this way, not another.
-  - `## How to test` — manual steps, or "covered by tests".
-  - `## Notes` — what was deliberately left out, what's deferred.
+    Three sentences max, one decision per sentence — if it needs more, it
+    belongs in architecture.md, linked from here instead.
+  - `## How to test` — manual steps, or "covered by tests". Four sentences max.
+  - `## Notes` — what was deliberately left out, what's deferred. Two sentences
+    max.
