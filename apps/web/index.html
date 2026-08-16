@@ -4,9 +4,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Data Room</title>
+    <meta
+      name="description"
+      content="Data Room is a private virtual data room for due diligence: keep deal documents in nested folders and share a room, a folder or a single file read-only with the people who need it."
+    />
   </head>
   <body>
-    <div id="root"></div>
+    <!-- React replaces this on mount. It stays in the served HTML so the page
+         still names the app and states its purpose without JavaScript — which is
+         what Google's OAuth branding review reads. -->
+    <div id="root">
+      <main class="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 p-6">
+        <div class="space-y-3">
+          <h1 class="text-3xl font-semibold tracking-tight">Data Room</h1>
+          <p class="text-muted-foreground">
+            Data Room is a virtual data room for due diligence: a private place
+            to keep the documents a deal depends on. Upload PDFs, organise them
+            into nested folders, and rename, move or delete them as the deal
+            moves.
+          </p>
+          <p class="text-muted-foreground">
+            Everything you upload stays private to your account until you decide
+            otherwise. When you need to let someone in, share the whole room, a
+            single folder or one file — either through a link that anyone can
+            open or with named people only, and revoke that access at any time.
+          </p>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
