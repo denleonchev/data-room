@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { toast } from "sonner";
 import type { NodeDto } from "@data-room/shared";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { useBreadcrumb, useNodeChildren } from "./use-node-tree";
+import { ApiError, useBreadcrumb, useNodeChildren } from "./use-node-tree";
 
 export function MoveDialog({
   node,
@@ -37,6 +38,15 @@ export function MoveDialog({
   const breadcrumb = useBreadcrumb(isRoot ? undefined : folderId);
   const folders = (children.data ?? []).filter((child) => child.type === "FOLDER");
   const path = isRoot ? (room ? [room] : []) : (breadcrumb.data ?? []);
+
+  // Another session deleted the folder we just browsed into — bounce back to
+  // the Data Room instead of silently showing it as an empty folder.
+  useEffect(() => {
+    if (children.error instanceof ApiError && children.error.status === 404 && !isRoot) {
+      toast.error("That folder no longer exists.");
+      setFolderId(room?.id);
+    }
+  }, [children.error, isRoot, room?.id]);
 
   function handleOpenChange(open: boolean) {
     // Same guard as DeleteDialog: don't drop the dialog mid-move.

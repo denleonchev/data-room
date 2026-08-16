@@ -3,12 +3,24 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
+import { ApiError } from "./features/nodes/use-node-tree";
 import { AuthPage } from "./routes/auth-page";
 import { ProtectedLayout } from "./routes/protected-layout";
 import { DataRoomPage } from "./routes/data-room-page";
 import "./index.css";
 
-const queryClient = new QueryClient();
+// A 4xx is never transient — retrying "not found" or "conflict" wastes the
+// default 3 retries' worth of backoff (~7s) before the UI can react to it.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) =>
+        error instanceof ApiError && error.status >= 400 && error.status < 500
+          ? false
+          : failureCount < 3,
+    },
+  },
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
