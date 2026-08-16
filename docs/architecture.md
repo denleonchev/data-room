@@ -238,6 +238,12 @@ Actions at all:
 - **A pending row that's never completed is swept lazily**, on the next read of
   its folder, once it's older than 24h — no scheduler, reusing the read path
   that already decides what a folder contains.
+- **Deleting a file (or a folder with files inside) removes its Storage
+  object(s) too**, best-effort: the object keys under the node are collected
+  before the Postgres delete, then removed from Storage after it succeeds. A
+  Storage failure only logs — it never turns an already-succeeded node delete
+  into a 500, so the tradeoff is a possible orphaned object over an
+  undeletable node.
 
 ## Upload validation and name conflicts
 

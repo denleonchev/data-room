@@ -38,11 +38,21 @@ export class StorageService {
   }
 
   /** A short-lived URL the browser GETs the file's bytes from directly. */
-  async createSignedDownloadUrl(objectKey: string, expiresInSeconds: number): Promise<string> {
+  async createSignedDownloadUrl(
+    objectKey: string,
+    expiresInSeconds: number,
+  ): Promise<string> {
     const { data, error } = await this.client.storage
       .from(this.bucket)
       .createSignedUrl(objectKey, expiresInSeconds);
     if (error) throw error;
     return data.signedUrl;
+  }
+
+  /** Removes objects after their node's row is gone. The caller decides
+   *  whether a failure here should block anything. */
+  async deleteObjects(objectKeys: string[]): Promise<void> {
+    const { error } = await this.client.storage.from(this.bucket).remove(objectKeys);
+    if (error) throw error;
   }
 }

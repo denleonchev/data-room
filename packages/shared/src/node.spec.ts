@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createFolderSchema, nodeNameSchema } from "./node";
+import { createFolderSchema, nodeNameSchema, updateNodeSchema } from "./node";
 
 const parse = (name: string) => nodeNameSchema.safeParse(name);
 
@@ -52,5 +52,29 @@ describe("createFolderSchema", () => {
       name: "  Legal  ",
     });
     expect(result.data?.name).toBe("Legal");
+  });
+});
+
+describe("updateNodeSchema", () => {
+  it("accepts a rename alone", () => {
+    expect(updateNodeSchema.safeParse({ name: "Legal" }).success).toBe(true);
+  });
+
+  it("accepts a move alone", () => {
+    expect(updateNodeSchema.safeParse({ parentId: "archive-id" }).success).toBe(true);
+  });
+
+  it("accepts a rename and a move in the same request", () => {
+    expect(
+      updateNodeSchema.safeParse({ name: "Legal", parentId: "archive-id" }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a body with neither field — nothing to do", () => {
+    expect(updateNodeSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("still applies the name rules to the rename field", () => {
+    expect(updateNodeSchema.safeParse({ name: "" }).success).toBe(false);
   });
 });
