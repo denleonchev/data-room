@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { Injectable } from "@nestjs/common";
-import { isSelfOrDescendant } from "@data-room/shared";
+import { ancestorIds, isSelfOrDescendant } from "@data-room/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { NodeNotFoundError } from "../nodes/node-errors";
@@ -85,5 +85,33 @@ export class AccessService {
       node.storageKey!,
       DOWNLOAD_URL_TTL_SECONDS,
     );
+  }
+
+  /**
+   * Loads `nodeId` if the caller owns it, or if a restricted share on it or
+   * any of its ancestors grants their email access — the merged rule every
+   * authenticated read path beyond pure ownership needs. Compares the
+   * session's email straight against `granteeEmail` rather than a stored
+   * link, so an invite starts working the moment that email has a session —
+   * nothing to update on sign-up.
+   */
+  async loadAccessible(
+    user: { id: string; email: string },
+    nodeId: string,
+  ): Promise<Node> {
+    const node = await this.prisma.node.findUnique({ where: { id: nodeId } });
+    if (!node) throw new NodeNotFoundError(nodeId);
+    if (node.ownerId === user.id) return node;
+
+    const candidateIds = [...ancestorIds(node.path), node.id];
+    const granted = await this.prisma.share.findFirst({
+      where: {
+        nodeId: { in: candidateIds },
+        mode: "RESTRICTED",
+        granteeEmail: user.email.trim().toLowerCase(),
+      },
+    });
+    if (!granted) throw new NodeNotFoundError(nodeId);
+    return node;
   }
 }
