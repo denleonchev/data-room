@@ -233,12 +233,18 @@ export function NodeTable({
   }
 
   return (
-    <Table>
+    <Table className="table-fixed">
       <TableHeader>
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
-              <TableHead key={header.id}>
+              <TableHead
+                key={header.id}
+                className={cn(
+                  header.id === "updatedAt" && "w-32",
+                  header.id === "actions" && "w-[340px]",
+                )}
+              >
                 {header.isPlaceholder
                   ? null
                   : flexRender(header.column.columnDef.header, header.getContext())}
