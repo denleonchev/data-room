@@ -155,10 +155,16 @@ check in `AccessService`, not a new table or migration shape. `RESTRICTED` mode
 already proves the row-per-grantee shape holds: extending it to carry write
 permission is additive, the same way `RESTRICTED` was additive to `PUBLIC_LINK`.
 
+**Item count is already a single indexed query, and total size is the same query.**
+`subtreeStats` (`apps/api/src/nodes/node-tree.service.ts`) counts a folder's whole
+subtree with one `groupBy` filtered on `path: { startsWith: subtreePrefix(node) }` —
+an indexed prefix-range scan on the materialized `path` column (the `text_pattern_ops`
+index from the S2 model), not a recursive walk. `Node.size` already exists on every
+file row, so total size is the same query with `_sum: { size: true }` added next to
+`_count: { _all: true }` — no new index, no extra round trip.
+
 TODO — answer once the data model is decided:
 
-- How do you compute the total size and item count of a folder including its whole
-  subtree?
 - What changes when one Data Room holds 100,000 files (listing, pagination,
   indexes)?
 
