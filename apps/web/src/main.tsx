@@ -8,6 +8,7 @@ import { AuthPage } from "./routes/auth-page";
 import { ProtectedLayout } from "./routes/protected-layout";
 import { DataRoomPage } from "./routes/data-room-page";
 import { PublicSharePage } from "./routes/public-share-page";
+import { SharedWithMePage } from "./routes/shared-with-me-page";
 import "./index.css";
 
 // A 4xx is never transient — retrying "not found" or "conflict" wastes the
@@ -36,6 +37,7 @@ createRoot(document.getElementById("root")!).render(
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<DataRoomPage />} />
             <Route path="/folder/:id" element={<DataRoomPage />} />
+            <Route path="/shared-with-me" element={<SharedWithMePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

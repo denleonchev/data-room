@@ -139,12 +139,44 @@ export function DataRoomPage() {
       ? [dataRoom.data]
       : undefined;
 
+  // /folder/:id now serves both my own subfolders and ones shared with me
+  // (restricted grants merge into the same read path) — while the
+  // breadcrumb root is still resolving, default to hiding write chrome
+  // rather than flash it and then take it away.
+  const isOwn =
+    !folderId ||
+    (breadcrumb.data !== undefined &&
+      dataRoom.data !== undefined &&
+      breadcrumb.data[0]?.id === dataRoom.data.id);
+
+  const table = (
+    <NodeTable
+      nodes={children.data ?? []}
+      isLoading={!currentId || children.isLoading}
+      errorMessage={null}
+      isRenamePending={rename.isPending}
+      onRename={isOwn ? handleRename : undefined}
+      onMove={isOwn ? setMoveTarget : undefined}
+      onShare={isOwn ? setShareTarget : undefined}
+      onDelete={isOwn ? setDeleteTarget : undefined}
+      onOpenFile={setViewingFile}
+    />
+  );
+
   return (
     <div className="space-y-4">
-      <Breadcrumbs path={path ?? []} />
+      <Breadcrumbs
+        path={path ?? []}
+        rootHref={isOwn ? "/" : `/folder/${path?.[0]?.id ?? ""}`}
+      />
       <div className="flex items-center gap-3">
         <h1 className="text-xl font-semibold">{title}</h1>
-        {currentId && title && (
+        {!isOwn && title && (
+          <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+            View only
+          </span>
+        )}
+        {isOwn && currentId && title && (
           <Button
             size="sm"
             variant="outline"
@@ -155,28 +187,22 @@ export function DataRoomPage() {
         )}
       </div>
 
-      <NewFolderRow isPending={createFolder.isPending} onCreate={handleCreate} />
+      {isOwn && <NewFolderRow isPending={createFolder.isPending} onCreate={handleCreate} />}
 
-      <UploadQueue
-        items={uploads.items}
-        onCancel={uploads.cancel}
-        onRetry={uploads.retry}
-        onDismiss={uploads.dismiss}
-      />
-
-      <UploadDropZone onFilesSelected={uploads.addFiles}>
-        <NodeTable
-          nodes={children.data ?? []}
-          isLoading={!currentId || children.isLoading}
-          errorMessage={null}
-          isRenamePending={rename.isPending}
-          onRename={handleRename}
-          onMove={setMoveTarget}
-          onShare={setShareTarget}
-          onDelete={setDeleteTarget}
-          onOpenFile={setViewingFile}
+      {isOwn && (
+        <UploadQueue
+          items={uploads.items}
+          onCancel={uploads.cancel}
+          onRetry={uploads.retry}
+          onDismiss={uploads.dismiss}
         />
-      </UploadDropZone>
+      )}
+
+      {isOwn ? (
+        <UploadDropZone onFilesSelected={uploads.addFiles}>{table}</UploadDropZone>
+      ) : (
+        table
+      )}
 
       <DeleteDialog
         node={deleteTarget}
