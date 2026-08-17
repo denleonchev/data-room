@@ -163,10 +163,17 @@ index from the S2 model), not a recursive walk. `Node.size` already exists on ev
 file row, so total size is the same query with `_sum: { size: true }` added next to
 `_count: { _all: true }` — no new index, no extra round trip.
 
-TODO — answer once the data model is decided:
-
-- What changes when one Data Room holds 100,000 files (listing, pagination,
-  indexes)?
+**At 100,000 files, listing needs a page size and a real cursor — everything else
+already holds.** `listChildrenOf` currently returns a folder's children unpaginated,
+sorted `[{ type: "asc" }, { name: "asc" }]`. `name` is already unique per folder
+(`@@unique([parentId, name])`, S2), so `(type, name)` is a valid keyset cursor on its
+own — pagination doesn't need `id` as a tiebreaker, just a `take` limit and a
+`WHERE (type, name) > (cursor)`-style continuation on the same sort. The frontend
+side is a `NodeTable` prop change, not a rewrite: it already renders off TanStack
+Table, and TanStack Virtual slots into that same row model to cap rendered DOM nodes
+regardless of page size. `subtreeStats` and the `path`-prefix indexes above are
+already `O(subtree size)` via the index, not `O(Data Room size)`, so neither needs
+anything new at this scale.
 
 ## AI usage note
 
