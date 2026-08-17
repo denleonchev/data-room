@@ -15,6 +15,7 @@ import {
   isNameConflict,
 } from "../nodes/node-errors";
 import { NodeService } from "../nodes/node.service";
+import { AccessService } from "../sharing/access.service";
 import { UploadNotFoundError } from "./file-errors";
 import type { UploadUrlDto } from "./file.dto";
 
@@ -29,6 +30,7 @@ export class FileService {
     private readonly prisma: PrismaService,
     private readonly nodes: NodeService,
     private readonly storage: StorageService,
+    private readonly access: AccessService,
   ) {}
 
   /**
@@ -95,14 +97,23 @@ export class FileService {
   }
 
   /**
-   * Owner-only for now — S6's share viewers will extend this same check to a
-   * valid share-token holder, which is why it stays a single call site.
+   * Owner or a restricted-share grantee — merged the same way every other
+   * authenticated read path is (`AccessService.loadAccessible`). Public-link
+   * viewers go through a separate call site
+   * (`AccessService.createDownloadUrl`), since they carry a token instead of
+   * a session.
    */
-  async createDownloadUrl(userId: string, nodeId: string): Promise<string> {
-    const node = await this.nodes.load(userId, nodeId);
+  async createDownloadUrl(
+    user: { id: string; email: string },
+    nodeId: string,
+  ): Promise<string> {
+    const { node } = await this.access.loadAccessible(user, nodeId);
     if (node.type !== "FILE" || node.status !== "READY") {
       throw new UploadNotFoundError(nodeId);
     }
-    return this.storage.createSignedDownloadUrl(node.storageKey!, DOWNLOAD_URL_TTL_SECONDS);
+    return this.storage.createSignedDownloadUrl(
+      node.storageKey!,
+      DOWNLOAD_URL_TTL_SECONDS,
+    );
   }
 }

@@ -5,3 +5,11 @@ export class ShareNotFoundError extends Error {
     this.name = "ShareNotFoundError";
   }
 }
+
+/** You already own it — a restricted share of your own item to yourself is meaningless. */
+export class SelfInviteError extends Error {
+  constructor() {
+    super("You already have full access to your own item");
+    this.name = "SelfInviteError";
+  }
+}

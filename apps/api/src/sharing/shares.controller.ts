@@ -11,9 +11,10 @@ import {
   Req,
   UseFilters,
 } from "@nestjs/common";
-import type { ShareDto } from "@data-room/shared";
+import type { NodeDto, ShareDto } from "@data-room/shared";
 import type { AuthenticatedRequest } from "../auth/auth.guard";
 import { NodeExceptionFilter } from "../nodes/node-exception.filter";
+import { toNodeDto } from "../nodes/node.dto";
 import { CreateShareDto, ListSharesQueryDto, toShareDto } from "./share.dto";
 import { ShareService } from "./share.service";
 
@@ -27,7 +28,14 @@ export class SharesController {
     @Req() request: AuthenticatedRequest,
     @Body() body: CreateShareDto,
   ): Promise<ShareDto> {
-    return toShareDto(await this.shares.create(request.session.user.id, body.nodeId));
+    const user = { id: request.session.user.id, email: request.session.user.email };
+    return toShareDto(await this.shares.create(user, body.nodeId, body.granteeEmail));
+  }
+
+  @Get("shared-with-me")
+  async sharedWithMe(@Req() request: AuthenticatedRequest): Promise<NodeDto[]> {
+    const nodes = await this.shares.listSharedWithMe(request.session.user.email);
+    return nodes.map(toNodeDto);
   }
 
   @Get()

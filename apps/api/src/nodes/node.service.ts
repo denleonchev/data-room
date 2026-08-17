@@ -67,15 +67,15 @@ export class NodeService {
     }
   }
 
-  /** Children of a folder — of the caller's Data Room when no parent is given. */
-  async list(userId: string, parentId?: string): Promise<Node[]> {
-    const parent = parentId
-      ? await this.load(userId, parentId)
-      : await this.roomFor(userId);
-
+  /**
+   * A folder's children — the caller has already resolved and authorized
+   * `parentId` (owner via `load`/`roomFor`, or a grantee via
+   * `AccessService.loadAccessible`), so this is just the query.
+   */
+  async listChildrenOf(parentId: string): Promise<Node[]> {
     await this.prisma.node.deleteMany({
       where: {
-        parentId: parent.id,
+        parentId,
         type: "FILE",
         status: "PENDING",
         createdAt: { lt: new Date(Date.now() - ORPHANED_UPLOAD_TTL_MS) },
@@ -83,7 +83,7 @@ export class NodeService {
     });
 
     return this.prisma.node.findMany({
-      where: { parentId: parent.id },
+      where: { parentId },
       // Folders first, then by name: the order the list view renders in.
       orderBy: [{ type: "asc" }, { name: "asc" }],
     });
