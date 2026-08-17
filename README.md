@@ -72,11 +72,6 @@ Full rationale lives in [docs/architecture.md](docs/architecture.md). Summary:
 - Data model: one `node` table for folders and files, a Data Room being a folder
   without a parent; deletion is permanent and cascades down the subtree
 
-Not yet decided (tracked in docs/architecture.md):
-
-- TODO: folder tree strategy for subtree size & item count aggregation at scale
-- TODO: name-conflict resolution on upload/rename
-
 ## Data model / ERD
 
 ```mermaid
@@ -105,9 +100,10 @@ erDiagram
     share {
         uuid id PK
         uuid nodeId FK
-        ShareMode mode "PUBLIC_LINK"
+        ShareMode mode "PUBLIC_LINK | RESTRICTED"
         ShareRole role "VIEWER"
         text token UK "public links only"
+        text granteeEmail UK "nodeId+granteeEmail; restricted shares only"
         timestamp createdAt
         timestamp updatedAt
     }
@@ -120,10 +116,12 @@ discriminated by `type`, which lets the subtree walk behind counts, sizes, delet
 and access checks be written once. Names are unique within a folder and
 case-sensitive; deleting a folder deletes its subtree for good, by cascade.
 
-`share` ships with the tree but is not read until the sharing slices: `mode` and
-`role` start at `PUBLIC_LINK` / `VIEWER`, with restricted shares and per-user roles
-as declared extension points. Rationale for each of these:
-[docs/architecture.md](docs/architecture.md#data-model).
+`share` ships with the tree but isn't read until the sharing slices. Both modes
+have shipped: `PUBLIC_LINK` (anyone with the token) and `RESTRICTED` (one row per
+invited email, resolved against the caller's session email at read time, no `User`
+foreign key). `role` still only ever holds `VIEWER` — per-user roles (viewer/editor)
+remain a declared extension point, see "How it scales" below. Rationale for each of
+these: [docs/architecture.md](docs/architecture.md#data-model).
 
 ## Setup instructions
 
@@ -145,14 +143,53 @@ anything beyond `/health`. Apply the schema with
 
 ## How it scales
 
-TODO — answer once the data model is decided:
+**Sharing already extends to per-user roles (viewer/editor) without remodeling.**
+`share.role` sits on the same row as `mode` and `granteeEmail`, scoped to one
+`(node, grantee)` pair — adding `EDITOR` is a new `ShareRole` enum value plus a
+check in `AccessService`, not a new table or migration shape. `RESTRICTED` mode
+already proves the row-per-grantee shape holds: extending it to carry write
+permission is additive, the same way `RESTRICTED` was additive to `PUBLIC_LINK`.
 
-- How do you compute the total size and item count of a folder including its whole
-  subtree?
-- What changes when one Data Room holds 100,000 files (listing, pagination,
-  indexes)?
-- How does sharing extend to per-user roles (viewer/editor) without remodeling?
+**Item count is already a single indexed query, and total size is the same query.**
+`subtreeStats` (`apps/api/src/nodes/node-tree.service.ts`) counts a folder's whole
+subtree with one `groupBy` filtered on `path: { startsWith: subtreePrefix(node) }` —
+an indexed prefix-range scan on the materialized `path` column (the `text_pattern_ops`
+index from the S2 model), not a recursive walk. `Node.size` already exists on every
+file row, so total size is the same query with `_sum: { size: true }` added next to
+`_count: { _all: true }` — no new index, no extra round trip.
+
+**At 100,000 files, listing needs a page size and a real cursor — everything else
+already holds.** `listChildrenOf` currently returns a folder's children unpaginated,
+sorted `[{ type: "asc" }, { name: "asc" }]`. `name` is already unique per folder
+(`@@unique([parentId, name])`, S2), so `(type, name)` is a valid keyset cursor on its
+own — pagination doesn't need `id` as a tiebreaker, just a `take` limit and a
+`WHERE (type, name) > (cursor)`-style continuation on the same sort. The frontend
+side is a `NodeTable` prop change, not a rewrite: it already renders off TanStack
+Table, and TanStack Virtual slots into that same row model to cap rendered DOM nodes
+regardless of page size. `subtreeStats` and the `path`-prefix indexes above are
+already `O(subtree size)` via the index, not `O(Data Room size)`, so neither needs
+anything new at this scale.
 
 ## AI usage note
 
-TODO — fill in once the build is further along.
+Built with Claude Code throughout, not just for scaffolding:
+
+- Architectural calls made by hand, AI implementing to spec — the materialized
+  `path` for subtree reads and the Better Auth vs Passport trade-off (see
+  `docs/architecture.md`) were reasoned through and decided first, then handed
+  to Claude Code to implement, not proposed by it
+- The task → roadmap slice breakdown (`docs/architecture.md`,
+  `docs/roadmap.md`) planned with AI, decisions still made by hand
+- Planning and implementing individual slice PRs
+- Claude Code's first pass isn't trusted by default: [#52](https://github.com/denleonchev/data-room/pull/52)
+  (a file-rooted share 404ing the children query right after creation) was its
+  logic, not caught on the first pass — found by the manual E2E script below and
+  fixed in the same PR
+- Manual end-to-end verification in place of CI tests against Postgres (a
+  deliberate trade-off, not an oversight): disposable Playwright/tsx scripts run
+  against the real dev server and dev Supabase for every PR, cleaned up after
+- Hand-written Prisma migrations where `prisma migrate dev` needed an
+  interactive shell it didn't have, verified afterward against the real schema
+- Documentation kept in sync with the code inside the same PRs, not as a
+  separate pass at the end
+- PR and issue formatting to the repo's own conventions (`CLAUDE.md`)
