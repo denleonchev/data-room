@@ -19,6 +19,10 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   trustedOrigins: process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : [],
   emailAndPassword: { enabled: true },
+  // Avoids a DB round trip on every authenticated request (AuthGuard calls
+  // getSession on each one) — server-side revocation can lag by up to this
+  // long, acceptable since nothing here revokes sessions server-side yet.
+  session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
   // Skipped rather than half-configured, so local dev runs without OAuth keys.
   socialProviders:
     googleClientId && googleClientSecret
