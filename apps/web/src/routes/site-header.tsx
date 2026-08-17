@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
-// Destinations that only exist for a signed-in user. Folders arrive under the
-// same root in slice 2; "Shared with me" comes with permissioned sharing.
-const PRIVATE_NAV = [{ to: "/", label: "My Data Room", end: true }];
+// Destinations that only exist for a signed-in user.
+const PRIVATE_NAV = [
+  { to: "/", label: "My Data Room", end: true },
+  { to: "/shared-with-me", label: "Shared with me", end: true },
+];
 
 export function SiteHeader({ user }: { user: SessionUser | null }) {
   const navigate = useNavigate();
