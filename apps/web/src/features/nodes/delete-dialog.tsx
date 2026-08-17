@@ -43,7 +43,7 @@ export function DeleteDialog({
         <DialogHeader>
           <DialogTitle>Delete {node?.name}?</DialogTitle>
           {pendingStats ? (
-            <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+            <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
           ) : (
             <DialogDescription>{describe(node, stats)}</DialogDescription>
           )}

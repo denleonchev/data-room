@@ -124,9 +124,15 @@ export function ShareDialog({
         </DialogHeader>
 
         {shares.isLoading ? (
-          <div className="space-y-2">
-            <div className="h-9 animate-pulse rounded-md bg-muted" />
-            <div className="h-9 animate-pulse rounded-md bg-muted" />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="h-5 w-24 animate-pulse rounded bg-muted" />
+              <div className="h-9 animate-pulse rounded-md bg-muted" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-5 w-36 animate-pulse rounded bg-muted" />
+              <div className="h-9 animate-pulse rounded-md bg-muted" />
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
