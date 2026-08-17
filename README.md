@@ -72,11 +72,6 @@ Full rationale lives in [docs/architecture.md](docs/architecture.md). Summary:
 - Data model: one `node` table for folders and files, a Data Room being a folder
   without a parent; deletion is permanent and cascades down the subtree
 
-Not yet decided (tracked in docs/architecture.md):
-
-- TODO: folder tree strategy for subtree size & item count aggregation at scale
-- TODO: name-conflict resolution on upload/rename
-
 ## Data model / ERD
 
 ```mermaid
