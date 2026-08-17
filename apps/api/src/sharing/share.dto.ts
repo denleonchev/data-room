@@ -16,6 +16,7 @@ export function toShareDto(share: Share): ShareDto {
     mode: share.mode,
     role: share.role,
     token: share.token,
+    granteeEmail: share.granteeEmail,
     createdAt: share.createdAt.toISOString(),
     updatedAt: share.updatedAt.toISOString(),
   };

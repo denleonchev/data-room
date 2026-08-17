@@ -2,8 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { NodeService } from "../nodes/node.service";
 import { AccessService } from "./access.service";
-import { ShareNotFoundError } from "./share-errors";
-import type { Share } from "../generated/prisma/client";
+import { SelfInviteError, ShareNotFoundError } from "./share-errors";
+import type { Node, Share } from "../generated/prisma/client";
 
 @Injectable()
 export class ShareService {
@@ -14,16 +14,34 @@ export class ShareService {
   ) {}
 
   /**
-   * Idempotent: a node already has at most one active public link — asking
-   * again hands back the same one instead of minting a second.
+   * Idempotent: a node already has at most one active public link, or one
+   * active restricted share per grantee email — asking again hands back the
+   * same row instead of minting a second.
    */
-  async create(userId: string, nodeId: string): Promise<Share> {
-    await this.nodes.load(userId, nodeId);
+  async create(
+    user: { id: string; email: string },
+    nodeId: string,
+    granteeEmail?: string,
+  ): Promise<Share> {
+    await this.nodes.load(user.id, nodeId);
 
-    const existing = await this.prisma.share.findFirst({
+    if (granteeEmail) {
+      if (granteeEmail === user.email.trim().toLowerCase()) throw new SelfInviteError();
+
+      const existingInvite = await this.prisma.share.findFirst({
+        where: { nodeId, mode: "RESTRICTED", granteeEmail },
+      });
+      if (existingInvite) return existingInvite;
+
+      return this.prisma.share.create({
+        data: { nodeId, mode: "RESTRICTED", role: "VIEWER", granteeEmail },
+      });
+    }
+
+    const existingLink = await this.prisma.share.findFirst({
       where: { nodeId, mode: "PUBLIC_LINK" },
     });
-    if (existing) return existing;
+    if (existingLink) return existingLink;
 
     return this.prisma.share.create({
       data: {
@@ -41,6 +59,16 @@ export class ShareService {
       where: { nodeId },
       orderBy: { createdAt: "desc" },
     });
+  }
+
+  /** The top-level nodes restricted-shared directly with this email. */
+  async listSharedWithMe(email: string): Promise<Node[]> {
+    const shares = await this.prisma.share.findMany({
+      where: { mode: "RESTRICTED", granteeEmail: email.trim().toLowerCase() },
+      include: { node: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return shares.map((share) => share.node);
   }
 
   /** `Share` carries no ownerId of its own — ownership is checked through its node. */

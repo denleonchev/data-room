@@ -14,6 +14,7 @@ import {
 } from "@nestjs/common";
 import type { BreadcrumbDto, NodeDto, SubtreeStatsDto } from "@data-room/shared";
 import type { AuthenticatedRequest } from "../auth/auth.guard";
+import { AccessService } from "../sharing/access.service";
 import { NodeExceptionFilter } from "./node-exception.filter";
 import { NodeService } from "./node.service";
 import { NodeTreeService } from "./node-tree.service";
@@ -25,6 +26,7 @@ export class NodesController {
   constructor(
     private readonly nodes: NodeService,
     private readonly tree: NodeTreeService,
+    private readonly access: AccessService,
   ) {}
 
   @Get("data-room")
@@ -37,7 +39,15 @@ export class NodesController {
     @Req() request: AuthenticatedRequest,
     @Query() query: ListNodesQueryDto,
   ): Promise<NodeDto[]> {
-    const children = await this.nodes.list(request.session.user.id, query.parentId);
+    const parent = query.parentId
+      ? (
+          await this.access.loadAccessible(
+            { id: request.session.user.id, email: request.session.user.email },
+            query.parentId,
+          )
+        ).node
+      : await this.nodes.roomFor(request.session.user.id);
+    const children = await this.nodes.listChildrenOf(parent.id);
     return children.map(toNodeDto);
   }
 
@@ -46,8 +56,11 @@ export class NodesController {
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
   ): Promise<BreadcrumbDto[]> {
-    await this.nodes.load(request.session.user.id, id);
-    return this.tree.ancestors(id);
+    const { scopeRootPath } = await this.access.loadAccessible(
+      { id: request.session.user.id, email: request.session.user.email },
+      id,
+    );
+    return this.tree.ancestors(id, scopeRootPath ?? undefined);
   }
 
   @Get("nodes/:id/subtree-stats")

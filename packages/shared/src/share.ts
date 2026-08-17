@@ -2,6 +2,10 @@ import { z } from "zod";
 
 export const createShareSchema = z.object({
   nodeId: z.string().min(1),
+  // Absent -> a public link; present -> invite that email to a restricted
+  // share. Normalized here so the browser and the API agree on what "the
+  // same email" means, the same reasoning nodeNameSchema already applies.
+  granteeEmail: z.email("Enter a valid email").trim().toLowerCase().optional(),
 });
 
 export type CreateShareInput = z.infer<typeof createShareSchema>;
@@ -27,6 +31,7 @@ export interface ShareDto {
   mode: ShareMode;
   role: ShareRole;
   token: string | null;
+  granteeEmail: string | null;
   createdAt: string;
   updatedAt: string;
 }

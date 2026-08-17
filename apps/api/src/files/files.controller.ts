@@ -32,6 +32,7 @@ export class FilesController {
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
   ): Promise<DownloadUrlDto> {
-    return { downloadUrl: await this.files.createDownloadUrl(request.session.user.id, id) };
+    const user = { id: request.session.user.id, email: request.session.user.email };
+    return { downloadUrl: await this.files.createDownloadUrl(user, id) };
   }
 }

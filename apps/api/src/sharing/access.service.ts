@@ -17,6 +17,18 @@ const TOKEN_BYTES = 32;
 // the leaf StorageModule, no cycle back through FilesModule.
 const DOWNLOAD_URL_TTL_SECONDS = 60;
 
+export interface AccessResult {
+  node: Node;
+  /**
+   * null when the caller owns the node — the full trail to their own Data
+   * Room applies as usual. Otherwise the path of the shallowest restricted
+   * share that actually grants access, for the breadcrumb to stop at — the
+   * same "don't reveal structure above what was shared" rule the public
+   * link view already applies.
+   */
+  scopeRootPath: string | null;
+}
+
 @Injectable()
 export class AccessService {
   constructor(
@@ -98,20 +110,27 @@ export class AccessService {
   async loadAccessible(
     user: { id: string; email: string },
     nodeId: string,
-  ): Promise<Node> {
+  ): Promise<AccessResult> {
     const node = await this.prisma.node.findUnique({ where: { id: nodeId } });
     if (!node) throw new NodeNotFoundError(nodeId);
-    if (node.ownerId === user.id) return node;
+    if (node.ownerId === user.id) return { node, scopeRootPath: null };
 
+    // Ordered from the Data Room down to the node itself, so the first match
+    // found is the shallowest — the most of the trail the caller is allowed
+    // to see.
     const candidateIds = [...ancestorIds(node.path), node.id];
-    const granted = await this.prisma.share.findFirst({
+    const shares = await this.prisma.share.findMany({
       where: {
         nodeId: { in: candidateIds },
         mode: "RESTRICTED",
         granteeEmail: user.email.trim().toLowerCase(),
       },
+      include: { node: { select: { path: true } } },
     });
-    if (!granted) throw new NodeNotFoundError(nodeId);
-    return node;
+    const shallowest = candidateIds
+      .map((id) => shares.find((share) => share.nodeId === id))
+      .find((share) => share !== undefined);
+    if (!shallowest) throw new NodeNotFoundError(nodeId);
+    return { node, scopeRootPath: shallowest.node.path };
   }
 }
