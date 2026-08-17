@@ -12,7 +12,10 @@ export const listSharesQuerySchema = z.object({
 
 export type ListSharesQuery = z.infer<typeof listSharesQuerySchema>;
 
-export type ShareMode = "PUBLIC_LINK";
+// RESTRICTED lands with slice 7's logic/endpoints/ui — the type widens here
+// because it mirrors the DB enum the migration just added a value to, not
+// because anything reads or writes a restricted share yet.
+export type ShareMode = "PUBLIC_LINK" | "RESTRICTED";
 
 export type ShareRole = "VIEWER";
 

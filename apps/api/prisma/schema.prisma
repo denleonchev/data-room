@@ -86,6 +86,7 @@ enum NodeType {
 
 enum ShareMode {
   PUBLIC_LINK
+  RESTRICTED
 }
 
 enum ShareRole {
@@ -130,16 +131,24 @@ model Node {
 }
 
 model Share {
-  id        String    @id @default(uuid(7))
-  nodeId    String
-  node      Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
-  mode      ShareMode
-  role      ShareRole @default(VIEWER)
+  id           String    @id @default(uuid(7))
+  nodeId       String
+  node         Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  mode         ShareMode
+  role         ShareRole @default(VIEWER)
   // Only public links carry a token; restricted shares identify their grantee.
-  token     String?   @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  token        String?   @unique
+  // Only restricted shares carry this — resolved against the caller's session
+  // email at read time (slice 7's logic PR), not a stored user link. Same
+  // resolve-lazily-on-read choice the Data Room's own creation already makes.
+  granteeEmail String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  @@index([nodeId])
+  // The leading column also serves nodeId-only lookups, so no separate index
+  // for it — same reasoning Node's own (parentId, name) index already uses.
+  // NULLs don't collide in a unique index, so this only constrains restricted
+  // shares (one grantee per node), never public links.
+  @@unique([nodeId, granteeEmail])
   @@map("share")
 }
