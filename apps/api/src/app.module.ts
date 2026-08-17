@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { APP_GUARD, APP_PIPE } from "@nestjs/core";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { ZodValidationPipe } from "nestjs-zod";
 import { HealthController } from "./health/health.controller";
 import { MeController } from "./auth/me.controller";
@@ -10,9 +11,18 @@ import { FilesModule } from "./files/files.module";
 import { SharingModule } from "./sharing/sharing.module";
 
 @Module({
-  imports: [PrismaModule, NodesModule, FilesModule, SharingModule],
+  imports: [
+    // Per-IP, applies ahead of AuthGuard so it also covers unauthenticated
+    // routes like public share links.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    PrismaModule,
+    NodesModule,
+    FilesModule,
+    SharingModule,
+  ],
   controllers: [HealthController, MeController],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     // Bodies and queries typed with createZodDto are parsed by their schema;
     // anything else passes through untouched.

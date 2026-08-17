@@ -3,6 +3,8 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { toNodeHandler } from "better-auth/node";
+import helmet from "helmet";
+import compression from "compression";
 import { AppModule } from "./app.module";
 import { auth } from "./auth/auth";
 
@@ -12,6 +14,9 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
+
+  app.use(helmet());
+  app.use(compression());
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN,
