@@ -105,9 +105,10 @@ erDiagram
     share {
         uuid id PK
         uuid nodeId FK
-        ShareMode mode "PUBLIC_LINK"
+        ShareMode mode "PUBLIC_LINK | RESTRICTED"
         ShareRole role "VIEWER"
         text token UK "public links only"
+        text granteeEmail UK "nodeId+granteeEmail; restricted shares only"
         timestamp createdAt
         timestamp updatedAt
     }
@@ -120,10 +121,12 @@ discriminated by `type`, which lets the subtree walk behind counts, sizes, delet
 and access checks be written once. Names are unique within a folder and
 case-sensitive; deleting a folder deletes its subtree for good, by cascade.
 
-`share` ships with the tree but is not read until the sharing slices: `mode` and
-`role` start at `PUBLIC_LINK` / `VIEWER`, with restricted shares and per-user roles
-as declared extension points. Rationale for each of these:
-[docs/architecture.md](docs/architecture.md#data-model).
+`share` ships with the tree but isn't read until the sharing slices. Both modes
+have shipped: `PUBLIC_LINK` (anyone with the token) and `RESTRICTED` (one row per
+invited email, resolved against the caller's session email at read time, no `User`
+foreign key). `role` still only ever holds `VIEWER` — per-user roles (viewer/editor)
+remain a declared extension point, see "How it scales" below. Rationale for each of
+these: [docs/architecture.md](docs/architecture.md#data-model).
 
 ## Setup instructions
 
@@ -145,13 +148,19 @@ anything beyond `/health`. Apply the schema with
 
 ## How it scales
 
+**Sharing already extends to per-user roles (viewer/editor) without remodeling.**
+`share.role` sits on the same row as `mode` and `granteeEmail`, scoped to one
+`(node, grantee)` pair — adding `EDITOR` is a new `ShareRole` enum value plus a
+check in `AccessService`, not a new table or migration shape. `RESTRICTED` mode
+already proves the row-per-grantee shape holds: extending it to carry write
+permission is additive, the same way `RESTRICTED` was additive to `PUBLIC_LINK`.
+
 TODO — answer once the data model is decided:
 
 - How do you compute the total size and item count of a folder including its whole
   subtree?
 - What changes when one Data Room holds 100,000 files (listing, pagination,
   indexes)?
-- How does sharing extend to per-user roles (viewer/editor) without remodeling?
 
 ## AI usage note
 
