@@ -172,4 +172,24 @@ anything new at this scale.
 
 ## AI usage note
 
-TODO — fill in once the build is further along.
+Built with Claude Code throughout, not just for scaffolding:
+
+- Architectural calls made by hand, AI implementing to spec — the materialized
+  `path` for subtree reads and the Better Auth vs Passport trade-off (see
+  `docs/architecture.md`) were reasoned through and decided first, then handed
+  to Claude Code to implement, not proposed by it
+- The task → roadmap slice breakdown (`docs/architecture.md`,
+  `docs/roadmap.md`) planned with AI, decisions still made by hand
+- Planning and implementing individual slice PRs
+- Claude Code's first pass isn't trusted by default: [#52](https://github.com/denleonchev/data-room/pull/52)
+  (a file-rooted share 404ing the children query right after creation) was its
+  logic, not caught on the first pass — found by the manual E2E script below and
+  fixed in the same PR
+- Manual end-to-end verification in place of CI tests against Postgres (a
+  deliberate trade-off, not an oversight): disposable Playwright/tsx scripts run
+  against the real dev server and dev Supabase for every PR, cleaned up after
+- Hand-written Prisma migrations where `prisma migrate dev` needed an
+  interactive shell it didn't have, verified afterward against the real schema
+- Documentation kept in sync with the code inside the same PRs, not as a
+  separate pass at the end
+- PR and issue formatting to the repo's own conventions (`CLAUDE.md`)
