@@ -292,9 +292,10 @@ erDiagram
     share {
         uuid id PK
         uuid nodeId FK
-        ShareMode mode "PUBLIC_LINK"
+        ShareMode mode "PUBLIC_LINK | RESTRICTED"
         ShareRole role "VIEWER"
         text token UK "public links only"
+        text granteeEmail UK "nodeId+granteeEmail; restricted shares only"
         timestamp createdAt
         timestamp updatedAt
     }
@@ -376,9 +377,22 @@ cannot express in the schema and would report as drift on every later migration.
 before slice 6 — so the model is decided once instead of being remodelled halfway.
 A share always points at a node, which is what keeps "share the whole Data Room"
 from becoming a second branch in the access rules. `mode` and `role` start with one
-value each: `RESTRICTED` and the grantee columns arrive in slice 7, `EDITOR` is the
+value each: `RESTRICTED` arrives in slice 7 as a second `mode`, `EDITOR` stays the
 extension point for per-user roles. Adding a value to an enum is not a remodelling.
 Revoking a share deletes its row.
+
+**A restricted share's grantee is an email column (`granteeEmail`), not a
+foreign key to `User`.** Access is resolved by comparing the caller's session
+email against it at read time (slice 7's logic), never by a stored link kept
+in sync on sign-up — the same choice the Data Room's own creation already
+makes ("on first read rather than during sign-up: it keeps the API
+independent of Better Auth's hooks and works for accounts that predate the
+feature"). A `granteeId` FK would need exactly the hook this app has twice
+avoided, just to answer "has this email signed up yet" — comparing the email
+directly answers it for free, on every read, with nothing to fall out of
+sync. `@@unique([nodeId, granteeEmail])` keeps one grantee per node per
+email; NULLs don't collide in a unique index, so public links (`granteeEmail`
+always `NULL`) are untouched by it.
 
 ## Sharing
 
