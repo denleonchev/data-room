@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -89,6 +90,10 @@ export function useNodeChildren(currentId?: string) {
     queryKey: ["nodes", currentId],
     queryFn: () => fetchChildren(currentId),
     enabled: !!currentId,
+    // Holding the last folder's answer through the next one's flight keeps the
+    // viewer's role — and so the buttons that depend on it — on screen while
+    // navigating. Rows are a different matter: the caller shows them as loading.
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -97,6 +102,9 @@ export function useBreadcrumb(folderId?: string) {
     queryKey: ["breadcrumb", folderId],
     queryFn: () => fetchBreadcrumb(folderId!),
     enabled: !!folderId,
+    // The old trail for a moment beats no trail at all: going deeper it is a
+    // prefix of the new one, so the line only ever grows.
+    placeholderData: keepPreviousData,
   });
 }
 

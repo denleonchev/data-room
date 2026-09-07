@@ -153,6 +153,7 @@ export function DataRoomPage() {
   // not a request later.
   const isOwn = folderId ? children.data?.viewerRole === "OWNER" : true;
 
+  const isListingReady = !children.isLoading && !children.isPlaceholderData;
   const isEmpty = (children.data?.nodes.length ?? 0) === 0;
 
   // The rows above the table keep their height, so filling them shifts nothing.
@@ -178,7 +179,7 @@ export function DataRoomPage() {
       nodes={children.data?.nodes ?? []}
       emptyState={emptyState}
       childStats={childStats.data}
-      isLoading={!currentId || children.isLoading}
+      isLoading={!currentId || children.isLoading || children.isPlaceholderData}
       errorMessage={null}
       isRenamePending={rename.isPending}
       onRename={isOwn ? handleRename : undefined}
@@ -252,7 +253,7 @@ export function DataRoomPage() {
       {isOwn ? (
         <UploadDropZone onFilesSelected={uploads.addFiles}>
           {table}
-          {!isEmpty && (
+          {isListingReady && !isEmpty && (
             <p className="mt-2 text-center text-xs text-muted-foreground">
               Drag PDFs here to upload
             </p>
