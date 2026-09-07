@@ -4,7 +4,12 @@ import {
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
-import type { BreadcrumbDto, ChildStatsDto, NodeDto } from "@data-room/shared";
+import type {
+  BreadcrumbDto,
+  ChildStatsDto,
+  ListNodesResponse,
+  NodeDto,
+} from "@data-room/shared";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -42,7 +47,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const fetchDataRoom = () => request<NodeDto>("/data-room");
 
 const fetchChildren = (parentId?: string) =>
-  request<NodeDto[]>(parentId ? `/nodes?parentId=${parentId}` : "/nodes");
+  request<ListNodesResponse>(parentId ? `/nodes?parentId=${parentId}` : "/nodes");
 
 const fetchBreadcrumb = (id: string) =>
   request<BreadcrumbDto[]>(`/nodes/${id}/breadcrumb`);
@@ -159,9 +164,15 @@ export function useMoveNode(currentFolderId: string | undefined) {
       patchMove(id, parentId),
     onMutate: async ({ id }) => {
       await queryClient.cancelQueries({ queryKey: ["nodes", currentFolderId] });
-      const previous = queryClient.getQueryData<NodeDto[]>(["nodes", currentFolderId]);
-      queryClient.setQueryData<NodeDto[]>(["nodes", currentFolderId], (nodes) =>
-        nodes?.filter((node) => node.id !== id),
+      const previous = queryClient.getQueryData<ListNodesResponse>([
+        "nodes",
+        currentFolderId,
+      ]);
+      queryClient.setQueryData<ListNodesResponse>(["nodes", currentFolderId], (listing) =>
+        listing && {
+          ...listing,
+          nodes: listing.nodes.filter((node) => node.id !== id),
+        },
       );
       return { previous };
     },
@@ -182,9 +193,15 @@ export function useDeleteNode(currentFolderId: string | undefined) {
     mutationFn: (id: string) => deleteNode(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["nodes", currentFolderId] });
-      const previous = queryClient.getQueryData<NodeDto[]>(["nodes", currentFolderId]);
-      queryClient.setQueryData<NodeDto[]>(["nodes", currentFolderId], (nodes) =>
-        nodes?.filter((node) => node.id !== id),
+      const previous = queryClient.getQueryData<ListNodesResponse>([
+        "nodes",
+        currentFolderId,
+      ]);
+      queryClient.setQueryData<ListNodesResponse>(["nodes", currentFolderId], (listing) =>
+        listing && {
+          ...listing,
+          nodes: listing.nodes.filter((node) => node.id !== id),
+        },
       );
       return { previous };
     },

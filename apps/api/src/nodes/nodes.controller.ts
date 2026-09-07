@@ -15,8 +15,10 @@ import {
 import type {
   BreadcrumbDto,
   ChildStatsDto,
+  ListNodesResponse,
   NodeDto,
   SubtreeStatsDto,
+  ViewerRole,
 } from "@data-room/shared";
 import type { AuthenticatedRequest } from "../auth/auth.guard";
 import { AccessService } from "../sharing/access.service";
@@ -43,17 +45,26 @@ export class NodesController {
   async list(
     @Req() request: AuthenticatedRequest,
     @Query() query: ListNodesQueryDto,
-  ): Promise<NodeDto[]> {
-    const parent = query.parentId
-      ? (
-          await this.access.loadAccessible(
-            { id: request.session.user.id, email: request.session.user.email },
-            query.parentId,
-          )
-        ).node
-      : await this.nodes.roomFor(request.session.user.id);
-    const children = await this.nodes.listChildrenOf(parent.id);
-    return children.map(toNodeDto);
+  ): Promise<ListNodesResponse> {
+    let parentId: string;
+    let viewerRole: ViewerRole;
+
+    if (query.parentId) {
+      // Ownership is settled here anyway; returning it saves the client from
+      // inferring it by comparing the breadcrumb root against the Data Room.
+      const access = await this.access.loadAccessible(
+        { id: request.session.user.id, email: request.session.user.email },
+        query.parentId,
+      );
+      parentId = access.node.id;
+      viewerRole = access.scopeRootPath === null ? "OWNER" : "VIEWER";
+    } else {
+      parentId = (await this.nodes.roomFor(request.session.user.id)).id;
+      viewerRole = "OWNER";
+    }
+
+    const children = await this.nodes.listChildrenOf(parentId);
+    return { nodes: children.map(toNodeDto), viewerRole };
   }
 
   @Get("nodes/child-stats")

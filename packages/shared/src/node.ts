@@ -65,6 +65,15 @@ export interface NodeDto {
   updatedAt: string;
 }
 
+export type ViewerRole = "OWNER" | "VIEWER";
+
+// One round trip answers both questions a folder view asks: what is in it, and
+// whether the viewer may change any of it.
+export interface ListNodesResponse {
+  nodes: NodeDto[];
+  viewerRole: ViewerRole;
+}
+
 export interface BreadcrumbDto {
   id: string;
   name: string;

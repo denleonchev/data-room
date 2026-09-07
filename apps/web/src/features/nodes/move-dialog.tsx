@@ -39,7 +39,7 @@ export function MoveDialog({
   // A folder can't be moved into itself, so it isn't offered as a step on the
   // way either — that keeps its whole subtree out of reach, which is what the
   // API would reject anyway.
-  const folders = (children.data ?? []).filter(
+  const folders = (children.data?.nodes ?? []).filter(
     (child) => child.type === "FOLDER" && child.id !== node?.id,
   );
   const path = isRoot ? (room ? [room] : []) : (breadcrumb.data ?? []);
