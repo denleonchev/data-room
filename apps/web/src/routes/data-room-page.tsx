@@ -16,6 +16,7 @@ import {
   useCreateFolder,
   useDataRoom,
   useDeleteNode,
+  useChildStats,
   useMoveNode,
   useNodeChildren,
   useRenameNode,
@@ -39,6 +40,7 @@ export function DataRoomPage() {
   const createFolder = useCreateFolder(currentId);
   const rename = useRenameNode(currentId, dataRoom.data?.id);
   const move = useMoveNode(currentId);
+  const childStats = useChildStats(currentId);
   const remove = useDeleteNode(currentId);
 
   const [deleteTarget, setDeleteTarget] = useState<NodeDto | null>(null);
@@ -156,6 +158,7 @@ export function DataRoomPage() {
   const table = (
     <NodeTable
       nodes={children.data ?? []}
+      childStats={childStats.data}
       isLoading={!currentId || children.isLoading}
       errorMessage={null}
       isRenamePending={rename.isPending}

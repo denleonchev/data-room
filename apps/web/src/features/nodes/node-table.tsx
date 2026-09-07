@@ -7,7 +7,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import type { NodeDto } from "@data-room/shared";
+import type { ChildStatsDto, NodeDto } from "@data-room/shared";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,6 +33,14 @@ const columnHelper = createColumnHelper<NodeDto>();
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
+function describeContents({ folders, files }: ChildStatsDto): string {
+  if (folders === 0 && files === 0) return "Empty";
+  const parts = [];
+  if (folders > 0) parts.push(`${folders} ${folders === 1 ? "folder" : "folders"}`);
+  if (files > 0) parts.push(`${files} ${files === 1 ? "file" : "files"}`);
+  return parts.join(" · ");
+}
+
 function NodeIcon({ type }: { type: NodeDto["type"] }) {
   const Icon = type === "FOLDER" ? Folder : FileText;
   return (
@@ -48,6 +56,7 @@ function NodeIcon({ type }: { type: NodeDto["type"] }) {
 
 export function NodeTable({
   nodes,
+  childStats,
   isLoading,
   errorMessage,
   isRenamePending,
@@ -60,6 +69,7 @@ export function NodeTable({
   emptyMessage = 'This folder is empty. Drag files here, or use "Upload files" above, to add some.',
 }: {
   nodes: NodeDto[];
+  childStats?: ChildStatsDto[];
   isLoading: boolean;
   errorMessage: string | null;
   isRenamePending: boolean;
@@ -71,6 +81,12 @@ export function NodeTable({
   folderHref?: (id: string) => string;
   emptyMessage?: string;
 }) {
+  const statsById = childStats && new Map(childStats.map((entry) => [entry.id, entry]));
+  const contentsOf = (node: NodeDto): ChildStatsDto | undefined =>
+    node.type === "FOLDER" && statsById
+      ? (statsById.get(node.id) ?? { id: node.id, folders: 0, files: 0, bytes: 0 })
+      : undefined;
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
   const [renameError, setRenameError] = useState<string | null>(null);
@@ -135,14 +151,22 @@ export function NodeTable({
           );
         }
         if (node.type === "FOLDER") {
+          const contents = contentsOf(node);
           return (
-            <Link
-              to={folderHref(node.id)}
-              className="flex items-center gap-2 font-medium hover:underline"
-            >
-              <NodeIcon type={node.type} />
-              {node.name}
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                to={folderHref(node.id)}
+                className="flex items-center gap-2 font-medium hover:underline"
+              >
+                <NodeIcon type={node.type} />
+                {node.name}
+              </Link>
+              {contents && (
+                <span className="truncate text-xs text-muted-foreground">
+                  {describeContents(contents)}
+                </span>
+              )}
+            </div>
           );
         }
         return (
@@ -161,8 +185,17 @@ export function NodeTable({
       header: "Size",
       cell: ({ row, getValue }) => {
         const size = getValue();
-        // Folders carry no size of their own; a subtree total goes here later.
-        if (row.original.type === "FOLDER" || size === null) {
+        if (row.original.type === "FOLDER") {
+          const contents = contentsOf(row.original);
+          // A folder has no size of its own — this is everything under it, and
+          // a dash until the totals arrive.
+          return contents ? (
+            <span>{formatFileSize(contents.bytes)}</span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          );
+        }
+        if (size === null) {
           return <span className="text-muted-foreground">—</span>;
         }
         return (

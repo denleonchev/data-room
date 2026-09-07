@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { findDuplicateNamesInBatch, uploadFileSchema } from "@data-room/shared";
-import { ApiError, request } from "@/features/nodes/use-node-tree";
+import { ApiError, invalidateChildStats, request } from "@/features/nodes/use-node-tree";
 
 export interface QueuedUpload {
   id: string;
@@ -105,6 +105,7 @@ export function useUploadQueue(currentFolderId: string | undefined) {
       updateItem(id, { status: "done" });
       scheduleAutoDismiss(id);
       queryClient.invalidateQueries({ queryKey: ["nodes", parentId] });
+      invalidateChildStats(queryClient);
     } catch (error) {
       xhrs.current.delete(id);
       if (error instanceof DOMException && error.name === "AbortError") return;
@@ -183,6 +184,7 @@ export function useUploadQueue(currentFolderId: string | undefined) {
         updateItem(id, { status: "done" });
         scheduleAutoDismiss(id);
         queryClient.invalidateQueries({ queryKey: ["nodes", parentId] });
+      invalidateChildStats(queryClient);
       } catch (error) {
         updateItem(id, { status: "error", error: errorMessage(error) });
       }

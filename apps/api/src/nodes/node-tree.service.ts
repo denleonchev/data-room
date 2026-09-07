@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { ancestorIds, subtreePrefix } from "@data-room/shared";
+import { ancestorIds, subtreePrefix, type ChildStatsDto } from "@data-room/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { NodeNotFoundError } from "./node-errors";
 
@@ -31,6 +31,47 @@ export class NodeTreeService {
       counts.find((row) => row.type === type)?._count._all ?? 0;
 
     return { folders: of("FOLDER"), files: of("FILE") };
+  }
+
+  /**
+   * What sits under each child of `parentId`, for the whole listing at once:
+   * one grouped scan of the parent's subtree instead of a query per row.
+   */
+  async childStats(parentId: string): Promise<ChildStatsDto[]> {
+    const parent = await this.load(parentId);
+    const prefix = subtreePrefix(parent);
+
+    // The ::int cast keeps Postgres on substring(string from int); untyped, it
+    // picks the regex overload and quietly returns NULL for every row.
+    const rows = await this.prisma.$queryRaw<
+      { childId: string; type: "FOLDER" | "FILE"; count: number; bytes: bigint }[]
+    >`
+      SELECT split_part(substring("path" from ${prefix.length + 1}::int), '/', 1) AS "childId",
+             "type",
+             count(*)::int                    AS "count",
+             coalesce(sum("size"), 0)::bigint AS "bytes"
+      FROM "node"
+      WHERE "path" LIKE ${prefix + "%"}
+      GROUP BY 1, 2
+    `;
+
+    const stats = new Map<string, ChildStatsDto>();
+    for (const row of rows) {
+      // The children themselves land under an empty key — their own path is
+      // the prefix exactly. Only what is inside them counts here.
+      if (row.childId === "") continue;
+      const entry = stats.get(row.childId) ?? {
+        id: row.childId,
+        folders: 0,
+        files: 0,
+        bytes: 0,
+      };
+      if (row.type === "FOLDER") entry.folders = row.count;
+      else entry.files = row.count;
+      entry.bytes += Number(row.bytes);
+      stats.set(row.childId, entry);
+    }
+    return [...stats.values()];
   }
 
   /**

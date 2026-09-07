@@ -12,7 +12,12 @@ import {
   Req,
   UseFilters,
 } from "@nestjs/common";
-import type { BreadcrumbDto, NodeDto, SubtreeStatsDto } from "@data-room/shared";
+import type {
+  BreadcrumbDto,
+  ChildStatsDto,
+  NodeDto,
+  SubtreeStatsDto,
+} from "@data-room/shared";
 import type { AuthenticatedRequest } from "../auth/auth.guard";
 import { AccessService } from "../sharing/access.service";
 import { NodeExceptionFilter } from "./node-exception.filter";
@@ -49,6 +54,22 @@ export class NodesController {
       : await this.nodes.roomFor(request.session.user.id);
     const children = await this.nodes.listChildrenOf(parent.id);
     return children.map(toNodeDto);
+  }
+
+  @Get("nodes/child-stats")
+  async childStats(
+    @Req() request: AuthenticatedRequest,
+    @Query() query: ListNodesQueryDto,
+  ): Promise<ChildStatsDto[]> {
+    const parent = query.parentId
+      ? (
+          await this.access.loadAccessible(
+            { id: request.session.user.id, email: request.session.user.email },
+            query.parentId,
+          )
+        ).node
+      : await this.nodes.roomFor(request.session.user.id);
+    return this.tree.childStats(parent.id);
   }
 
   @Get("nodes/:id/breadcrumb")
