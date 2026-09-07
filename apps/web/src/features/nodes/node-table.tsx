@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { FileText, Folder } from "lucide-react";
 import {
   createColumnHelper,
   flexRender,
@@ -23,6 +24,22 @@ import type { MutationResult } from "./use-node-tree";
 const columnHelper = createColumnHelper<NodeDto>();
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
+
+// Decorative: the name already says what the row is, this only makes it
+// readable without reading. Rendered in every branch of the name cell,
+// rename included, so the text never shifts sideways.
+function NodeIcon({ type }: { type: NodeDto["type"] }) {
+  const Icon = type === "FOLDER" ? Folder : FileText;
+  return (
+    <Icon
+      aria-hidden="true"
+      className={cn(
+        "size-4 shrink-0",
+        type === "FOLDER" ? "text-primary" : "text-muted-foreground",
+      )}
+    />
+  );
+}
 
 export function NodeTable({
   nodes,
@@ -84,17 +101,20 @@ export function NodeTable({
         if (editingId === node.id) {
           return (
             <div>
-              <Input
-                autoFocus
-                value={draftName}
-                onChange={(event) => setDraftName(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") submitRename(node.id);
-                  if (event.key === "Escape") cancelRename();
-                }}
-                disabled={isRenamePending}
-                className="h-8"
-              />
+              <div className="flex items-center gap-2">
+                <NodeIcon type={node.type} />
+                <Input
+                  autoFocus
+                  value={draftName}
+                  onChange={(event) => setDraftName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") submitRename(node.id);
+                    if (event.key === "Escape") cancelRename();
+                  }}
+                  disabled={isRenamePending}
+                  className="h-8"
+                />
+              </div>
               {renameError && (
                 <p className="mt-1 text-xs text-destructive">{renameError}</p>
               )}
@@ -102,11 +122,20 @@ export function NodeTable({
           );
         }
         if (node.status === "PENDING") {
-          return <span className="text-muted-foreground">{node.name}</span>;
+          return (
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <NodeIcon type={node.type} />
+              {node.name}
+            </span>
+          );
         }
         if (node.type === "FOLDER") {
           return (
-            <Link to={folderHref(node.id)} className="font-medium hover:underline">
+            <Link
+              to={folderHref(node.id)}
+              className="flex items-center gap-2 font-medium hover:underline"
+            >
+              <NodeIcon type={node.type} />
               {node.name}
             </Link>
           );
@@ -115,8 +144,9 @@ export function NodeTable({
           <button
             type="button"
             onClick={() => onOpenFile(node)}
-            className="font-medium hover:underline"
+            className="flex items-center gap-2 hover:underline"
           >
+            <NodeIcon type={node.type} />
             {node.name}
           </button>
         );
