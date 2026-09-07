@@ -240,7 +240,7 @@ export function NodeTable({
                     Rename
                   </DropdownMenuItem>
                 )}
-                {node.type === "FILE" && onMove && (
+                {onMove && (
                   <DropdownMenuItem onSelect={() => onMove(node)}>Move</DropdownMenuItem>
                 )}
                 {onShare && (

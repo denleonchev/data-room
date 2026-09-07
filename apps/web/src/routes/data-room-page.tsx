@@ -114,7 +114,11 @@ export function DataRoomPage() {
         setMoveTarget(null);
         return;
       }
-      toast.error(error instanceof ApiError ? error.message : "Couldn't move this file.");
+      const fallback =
+        moveTarget.type === "FOLDER"
+          ? "Couldn't move this folder."
+          : "Couldn't move this file.";
+      toast.error(error instanceof ApiError ? error.message : fallback);
     }
   }
 
