@@ -160,6 +160,13 @@ export function DataRoomPage() {
 
   const isEmpty = (children.data?.length ?? 0) === 0;
 
+  // Everything above the table waits on breadcrumb/data-room, and appearing
+  // late would shove the table down mid-navigation. The two rows keep their
+  // height and hold a skeleton shaped like what lands in them.
+  const isHeaderResolving = folderId
+    ? breadcrumb.data === undefined || dataRoom.data === undefined
+    : dataRoom.data === undefined;
+
   const emptyState = isOwn ? (
     <div className="flex flex-col items-center gap-3 rounded-md border border-dashed p-10 text-center">
       <FolderOpen className="size-8 text-muted-foreground" aria-hidden="true" />
@@ -195,20 +202,32 @@ export function DataRoomPage() {
     <div className="space-y-4">
       {/* At the root the breadcrumb would be the title repeated; inside a folder
           the breadcrumb's last entry is the title, so no heading either. */}
-      {folderId && (
-        <Breadcrumbs
-          path={path ?? []}
-          rootHref={isOwn ? "/" : `/folder/${path?.[0]?.id ?? ""}`}
-        />
-      )}
-      <div className="flex flex-wrap items-center gap-2">
-        {!folderId && <h1 className="mr-1 text-xl font-semibold">{title}</h1>}
-        {!isOwn && title && (
+      <div className="flex min-h-7 items-center">
+        {isHeaderResolving ? (
+          <span className="h-4 w-48 animate-pulse rounded bg-muted" />
+        ) : folderId ? (
+          <Breadcrumbs
+            path={path ?? []}
+            rootHref={isOwn ? "/" : `/folder/${path?.[0]?.id ?? ""}`}
+          />
+        ) : (
+          <h1 className="text-xl font-semibold">{title}</h1>
+        )}
+      </div>
+      <div className="flex min-h-8 flex-wrap items-center gap-2">
+        {isHeaderResolving && (
+          <>
+            <span className="h-8 w-28 animate-pulse rounded-md bg-muted" />
+            <span className="h-8 w-28 animate-pulse rounded-md bg-muted" />
+            <span className="h-8 w-20 animate-pulse rounded-md bg-muted" />
+          </>
+        )}
+        {!isHeaderResolving && !isOwn && title && (
           <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
             View only
           </span>
         )}
-        {isOwn && currentId && title && (
+        {!isHeaderResolving && isOwn && currentId && title && (
           <>
             <UploadButton size="sm" onFilesSelected={uploads.addFiles} />
             <Button
