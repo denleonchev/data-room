@@ -160,12 +160,10 @@ export function DataRoomPage() {
 
   const isEmpty = (children.data?.length ?? 0) === 0;
 
-  // Everything above the table waits on breadcrumb/data-room, and appearing
-  // late would shove the table down mid-navigation. The two rows keep their
-  // height and hold a skeleton shaped like what lands in them.
-  const isHeaderResolving = folderId
-    ? breadcrumb.data === undefined || dataRoom.data === undefined
-    : dataRoom.data === undefined;
+  // Only one thing above the table genuinely has to wait: whether this folder
+  // is mine or shared with me, which decides if the write buttons belong here
+  // at all. The rows keep their height so filling them shifts nothing.
+  const isOwnershipKnown = !folderId || (breadcrumb.data !== undefined && dataRoom.data !== undefined);
 
   const emptyState = isOwn ? (
     <div className="flex flex-col items-center gap-3 rounded-md border border-dashed p-10 text-center">
@@ -203,9 +201,7 @@ export function DataRoomPage() {
       {/* At the root the breadcrumb would be the title repeated; inside a folder
           the breadcrumb's last entry is the title, so no heading either. */}
       <div className="flex min-h-7 items-center">
-        {isHeaderResolving ? (
-          <span className="h-4 w-48 animate-pulse rounded bg-muted" />
-        ) : folderId ? (
+        {folderId ? (
           <Breadcrumbs
             path={path ?? []}
             rootHref={isOwn ? "/" : `/folder/${path?.[0]?.id ?? ""}`}
@@ -215,19 +211,12 @@ export function DataRoomPage() {
         )}
       </div>
       <div className="flex min-h-8 flex-wrap items-center gap-2">
-        {isHeaderResolving && (
-          <>
-            <span className="h-8 w-28 animate-pulse rounded-md bg-muted" />
-            <span className="h-8 w-28 animate-pulse rounded-md bg-muted" />
-            <span className="h-8 w-20 animate-pulse rounded-md bg-muted" />
-          </>
-        )}
-        {!isHeaderResolving && !isOwn && title && (
+        {isOwnershipKnown && !isOwn && (
           <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
             View only
           </span>
         )}
-        {!isHeaderResolving && isOwn && currentId && title && (
+        {isOwnershipKnown && isOwn && currentId && (
           <>
             <UploadButton size="sm" onFilesSelected={uploads.addFiles} />
             <Button
@@ -241,7 +230,7 @@ export function DataRoomPage() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setShareTarget({ id: currentId, name: title })}
+              onClick={() => setShareTarget({ id: currentId, name: title ?? "" })}
             >
               Share
             </Button>
