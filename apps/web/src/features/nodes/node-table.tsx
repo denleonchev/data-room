@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText, Folder } from "lucide-react";
+import { Check, FileText, Folder, MoreVertical, X } from "lucide-react";
 import {
   createColumnHelper,
   flexRender,
@@ -8,7 +8,14 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import type { NodeDto } from "@data-room/shared";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -186,22 +193,26 @@ export function NodeTable({
         if (node.status === "PENDING") return null;
         if (editingId === node.id) {
           return (
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-1">
               <Button
-                size="sm"
-                variant="outline"
+                size="icon-sm"
+                variant="ghost"
                 onClick={cancelRename}
                 disabled={isRenamePending}
+                aria-label="Cancel rename"
+                title="Cancel"
               >
-                Cancel
+                <X />
               </Button>
               <Button
-                size="sm"
+                size="icon-sm"
                 onClick={() => submitRename(node.id)}
                 disabled={isRenamePending}
+                aria-label="Save name"
+                title="Save"
                 className="relative"
               >
-                <span className={cn(isRenamePending && "opacity-0")}>Save</span>
+                <Check className={cn(isRenamePending && "opacity-0")} />
                 {isRenamePending && (
                   <span className="absolute inset-0 flex items-center justify-center">
                     <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -212,32 +223,39 @@ export function NodeTable({
           );
         }
         return (
-          <div className="flex justify-end gap-2">
-            {onRename && (
-              <Button size="sm" variant="ghost" onClick={() => startRename(node)}>
-                Rename
-              </Button>
-            )}
-            {node.type === "FILE" && onMove && (
-              <Button size="sm" variant="ghost" onClick={() => onMove(node)}>
-                Move
-              </Button>
-            )}
-            {onShare && (
-              <Button size="sm" variant="ghost" onClick={() => onShare(node)}>
-                Share
-              </Button>
-            )}
-            {onDelete && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-destructive hover:text-destructive"
-                onClick={() => onDelete(node)}
+          <div className="flex justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={`Actions for ${node.name}`}
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                  "opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100",
+                )}
               >
-                Delete
-              </Button>
-            )}
+                <MoreVertical />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {onRename && (
+                  <DropdownMenuItem onSelect={() => startRename(node)}>
+                    Rename
+                  </DropdownMenuItem>
+                )}
+                {node.type === "FILE" && onMove && (
+                  <DropdownMenuItem onSelect={() => onMove(node)}>Move</DropdownMenuItem>
+                )}
+                {onShare && (
+                  <DropdownMenuItem onSelect={() => onShare(node)}>Share</DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onSelect={() => onDelete(node)}>
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       },
@@ -288,7 +306,7 @@ export function NodeTable({
                 className={cn(
                   header.id === "size" && "w-24 text-right",
                   header.id === "updatedAt" && "w-32",
-                  header.id === "actions" && "w-[340px]",
+                  header.id === "actions" && "w-28",
                 )}
               >
                 {header.isPlaceholder
@@ -301,7 +319,7 @@ export function NodeTable({
       </TableHeader>
       <TableBody>
         {table.getRowModel().rows.map((row) => (
-          <TableRow key={row.id}>
+          <TableRow key={row.id} className="group">
             {row.getVisibleCells().map((cell) => (
               <TableCell
                 key={cell.id}
