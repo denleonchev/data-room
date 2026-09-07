@@ -1,10 +1,16 @@
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
-import type { BreadcrumbDto, ChildStatsDto, NodeDto } from "@data-room/shared";
+import type {
+  BreadcrumbDto,
+  ChildStatsDto,
+  ListNodesResponse,
+  NodeDto,
+} from "@data-room/shared";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -42,7 +48,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const fetchDataRoom = () => request<NodeDto>("/data-room");
 
 const fetchChildren = (parentId?: string) =>
-  request<NodeDto[]>(parentId ? `/nodes?parentId=${parentId}` : "/nodes");
+  request<ListNodesResponse>(parentId ? `/nodes?parentId=${parentId}` : "/nodes");
 
 const fetchBreadcrumb = (id: string) =>
   request<BreadcrumbDto[]>(`/nodes/${id}/breadcrumb`);
@@ -84,6 +90,10 @@ export function useNodeChildren(currentId?: string) {
     queryKey: ["nodes", currentId],
     queryFn: () => fetchChildren(currentId),
     enabled: !!currentId,
+    // Holding the last folder's answer through the next one's flight keeps the
+    // viewer's role — and so the buttons that depend on it — on screen while
+    // navigating. Rows are a different matter: the caller shows them as loading.
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -92,6 +102,9 @@ export function useBreadcrumb(folderId?: string) {
     queryKey: ["breadcrumb", folderId],
     queryFn: () => fetchBreadcrumb(folderId!),
     enabled: !!folderId,
+    // The old trail for a moment beats no trail at all: going deeper it is a
+    // prefix of the new one, so the line only ever grows.
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -159,9 +172,15 @@ export function useMoveNode(currentFolderId: string | undefined) {
       patchMove(id, parentId),
     onMutate: async ({ id }) => {
       await queryClient.cancelQueries({ queryKey: ["nodes", currentFolderId] });
-      const previous = queryClient.getQueryData<NodeDto[]>(["nodes", currentFolderId]);
-      queryClient.setQueryData<NodeDto[]>(["nodes", currentFolderId], (nodes) =>
-        nodes?.filter((node) => node.id !== id),
+      const previous = queryClient.getQueryData<ListNodesResponse>([
+        "nodes",
+        currentFolderId,
+      ]);
+      queryClient.setQueryData<ListNodesResponse>(["nodes", currentFolderId], (listing) =>
+        listing && {
+          ...listing,
+          nodes: listing.nodes.filter((node) => node.id !== id),
+        },
       );
       return { previous };
     },
@@ -182,9 +201,15 @@ export function useDeleteNode(currentFolderId: string | undefined) {
     mutationFn: (id: string) => deleteNode(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["nodes", currentFolderId] });
-      const previous = queryClient.getQueryData<NodeDto[]>(["nodes", currentFolderId]);
-      queryClient.setQueryData<NodeDto[]>(["nodes", currentFolderId], (nodes) =>
-        nodes?.filter((node) => node.id !== id),
+      const previous = queryClient.getQueryData<ListNodesResponse>([
+        "nodes",
+        currentFolderId,
+      ]);
+      queryClient.setQueryData<ListNodesResponse>(["nodes", currentFolderId], (listing) =>
+        listing && {
+          ...listing,
+          nodes: listing.nodes.filter((node) => node.id !== id),
+        },
       );
       return { previous };
     },

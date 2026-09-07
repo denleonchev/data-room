@@ -148,22 +148,16 @@ export function DataRoomPage() {
       ? [dataRoom.data]
       : undefined;
 
-  // /folder/:id now serves both my own subfolders and ones shared with me
-  // (restricted grants merge into the same read path) — while the
-  // breadcrumb root is still resolving, default to hiding write chrome
-  // rather than flash it and then take it away.
-  const isOwn =
-    !folderId ||
-    (breadcrumb.data !== undefined &&
-      dataRoom.data !== undefined &&
-      breadcrumb.data[0]?.id === dataRoom.data.id);
+  // /folder/:id serves both my own subfolders and ones shared with me, and the
+  // listing says which — the write chrome appears with the rows it applies to,
+  // not a request later.
+  const isOwn = folderId ? children.data?.viewerRole === "OWNER" : true;
 
-  const isEmpty = (children.data?.length ?? 0) === 0;
+  const isListingReady = !children.isLoading && !children.isPlaceholderData;
+  const isEmpty = (children.data?.nodes.length ?? 0) === 0;
 
-  // Only one thing above the table genuinely has to wait: whether this folder
-  // is mine or shared with me, which decides if the write buttons belong here
-  // at all. The rows keep their height so filling them shifts nothing.
-  const isOwnershipKnown = !folderId || (breadcrumb.data !== undefined && dataRoom.data !== undefined);
+  // The rows above the table keep their height, so filling them shifts nothing.
+  const isOwnershipKnown = !folderId || children.data !== undefined;
 
   const emptyState = isOwn ? (
     <div className="flex flex-col items-center gap-3 rounded-md border border-dashed p-10 text-center">
@@ -182,10 +176,10 @@ export function DataRoomPage() {
 
   const table = (
     <NodeTable
-      nodes={children.data ?? []}
+      nodes={children.data?.nodes ?? []}
       emptyState={emptyState}
       childStats={childStats.data}
-      isLoading={!currentId || children.isLoading}
+      isLoading={!currentId || children.isLoading || children.isPlaceholderData}
       errorMessage={null}
       isRenamePending={rename.isPending}
       onRename={isOwn ? handleRename : undefined}
@@ -259,7 +253,7 @@ export function DataRoomPage() {
       {isOwn ? (
         <UploadDropZone onFilesSelected={uploads.addFiles}>
           {table}
-          {!isEmpty && (
+          {isListingReady && !isEmpty && (
             <p className="mt-2 text-center text-xs text-muted-foreground">
               Drag PDFs here to upload
             </p>
