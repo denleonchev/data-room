@@ -10,17 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatFileSize } from "@/lib/format";
 import { ApiError } from "@/features/nodes/use-node-tree";
 import { useDownloadUrl } from "./use-download-url";
 
 const uploadedAtFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
-
-function formatFileSize(bytes: number | null): string {
-  if (bytes === null) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export function FileViewerDialog({
   node,
@@ -52,8 +46,7 @@ export function FileViewerDialog({
         <DialogHeader>
           <DialogTitle>{node?.name}</DialogTitle>
           <DialogDescription>
-            {formatFileSize(node?.size ?? null)}
-            {node && " · "}
+            {node?.size != null && `${formatFileSize(node.size)} · `}
             {node && `Uploaded ${uploadedAtFormatter.format(new Date(node.createdAt))}`}
           </DialogDescription>
         </DialogHeader>

@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatFileSize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { MutationResult } from "./use-node-tree";
 
@@ -149,6 +150,23 @@ export function NodeTable({
         );
       },
     }),
+    columnHelper.accessor("size", {
+      header: "Size",
+      cell: ({ row, getValue }) => {
+        const size = getValue();
+        // Folders carry no size of their own; a subtree total goes here later.
+        if (row.original.type === "FOLDER" || size === null) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return (
+          <span
+            className={cn(row.original.status === "PENDING" && "text-muted-foreground")}
+          >
+            {formatFileSize(size)}
+          </span>
+        );
+      },
+    }),
     columnHelper.accessor("updatedAt", {
       header: "Updated",
       cell: ({ row, getValue }) =>
@@ -268,6 +286,7 @@ export function NodeTable({
               <TableHead
                 key={header.id}
                 className={cn(
+                  header.id === "size" && "w-24 text-right",
                   header.id === "updatedAt" && "w-32",
                   header.id === "actions" && "w-[340px]",
                 )}
@@ -284,7 +303,10 @@ export function NodeTable({
         {table.getRowModel().rows.map((row) => (
           <TableRow key={row.id}>
             {row.getVisibleCells().map((cell) => (
-              <TableCell key={cell.id}>
+              <TableCell
+                key={cell.id}
+                className={cn(cell.column.id === "size" && "text-right")}
+              >
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </TableCell>
             ))}
