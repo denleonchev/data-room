@@ -23,7 +23,7 @@ flowchart TB
     S4 --> S6["S6 · public link share"]
     S5 --> S6
     S6 --> S7["S7 · permissioned share"]
-    S7 --> S8["S8 · polish + deliverable docs"]
+    S7 --> S8["S8 · file table polish"]
     S8 -.optional.-> S9["S9 · search · versioning"]
 ```
 
@@ -237,14 +237,29 @@ can see who has access and revoke per person.
 
 ---
 
-## S8 · Polish + deliverable docs
+## S8 · File table polish
 
-Not a five-step slice — a set of small PRs: grid/list toggle off the shared
-TanStack Table row model, empty states, loading skeletons, consistent error
-toasts, keyboard and focus pass on dialogs, and a sweep for anything
-visible-but-not-implemented (the task explicitly penalises that). Then the README:
-setup instructions verified from a clean clone, ERD, "how it scales" (subtree
-size/count, 100k files, per-user roles), AI usage note, live URLs. ~1.5h.
+**Story:** the file list reads as a file browser — a row shows what it is, how
+big it is, and what a folder holds, and its actions stay out of the way until I
+reach for them.
+
+1. **ui** — type icons, file size, row actions revealed on hover with the freed
+   width given back to the name, Move offered for folders. Nothing here needs
+   the backend, so it ships first rather than waiting on the aggregate below.
+2. **endpoints** — folder totals: counts and byte size for every child folder of
+   the open folder, in one aggregate over the existing path index — a request
+   per row would be the thing this slice is meant to disprove.
+3. **wire up** — the totals in the row, the empty folder included.
+
+- **Done when:** a folder's row says what is under it, in production.
+- **Docs:** none — the README's subtree-cost claim stops being text about
+  something invisible.
+- Tracked as [#62](https://github.com/denleonchev/data-room/issues/62). Scope
+  `nodes`. ~1.5h.
+
+The general polish and deliverable docs once planned here shipped alongside S7:
+skeletons and layout jitter in [#60](https://github.com/denleonchev/data-room/pull/60),
+README sync in [#58](https://github.com/denleonchev/data-room/pull/58).
 
 ---
 
