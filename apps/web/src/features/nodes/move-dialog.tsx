@@ -27,7 +27,7 @@ export function MoveDialog({
 }) {
   const [folderId, setFolderId] = useState<string | undefined>(undefined);
 
-  // Opens on the file's current folder — the common case is moving into a
+  // Opens on the moved node's current folder — the common case is moving into a
   // sibling, not starting the browse from the Data Room every time.
   useEffect(() => {
     if (node) setFolderId(node.parentId ?? room?.id);
@@ -36,7 +36,12 @@ export function MoveDialog({
   const isRoot = folderId !== undefined && folderId === room?.id;
   const children = useNodeChildren(folderId);
   const breadcrumb = useBreadcrumb(isRoot ? undefined : folderId);
-  const folders = (children.data ?? []).filter((child) => child.type === "FOLDER");
+  // A folder can't be moved into itself, so it isn't offered as a step on the
+  // way either — that keeps its whole subtree out of reach, which is what the
+  // API would reject anyway.
+  const folders = (children.data ?? []).filter(
+    (child) => child.type === "FOLDER" && child.id !== node?.id,
+  );
   const path = isRoot ? (room ? [room] : []) : (breadcrumb.data ?? []);
 
   // Another session deleted the folder we just browsed into — bounce back to

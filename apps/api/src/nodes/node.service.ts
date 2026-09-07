@@ -157,8 +157,11 @@ export class NodeService {
           where: { id: node.id },
           data: { parentId: destinationId, path: newPath },
         }),
+        // The ::int cast is load-bearing: an untyped parameter makes Postgres
+        // read this as substring(string from pattern), which matches nothing
+        // and returns NULL, and the concatenation then violates path NOT NULL.
         this.prisma.$executeRaw`
-          UPDATE "node" SET "path" = ${newPrefix} || substring("path" from ${oldPrefix.length + 1})
+          UPDATE "node" SET "path" = ${newPrefix} || substring("path" from ${oldPrefix.length + 1}::int)
           WHERE "path" LIKE ${oldPrefix + "%"}
         `,
       ]);
