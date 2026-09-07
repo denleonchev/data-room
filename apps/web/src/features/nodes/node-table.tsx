@@ -25,9 +25,6 @@ const columnHelper = createColumnHelper<NodeDto>();
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
-// Decorative: the name already says what the row is, this only makes it
-// readable without reading. Rendered in every branch of the name cell,
-// rename included, so the text never shifts sideways.
 function NodeIcon({ type }: { type: NodeDto["type"] }) {
   const Icon = type === "FOLDER" ? Folder : FileText;
   return (
