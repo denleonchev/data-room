@@ -1,48 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { MutationResult } from "./use-node-tree";
 
 export function NewFolderRow({
+  isOpen,
   isPending,
   onCreate,
+  onClose,
 }: {
+  isOpen: boolean;
   isPending: boolean;
   onCreate: (name: string) => Promise<MutationResult>;
+  onClose: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  function close() {
-    setIsOpen(false);
-    setName("");
-    setError(null);
-  }
+  useEffect(() => {
+    if (!isOpen) {
+      setName("");
+      setError(null);
+    }
+  }, [isOpen]);
 
   async function submit() {
     setError(null);
     const result = await onCreate(name);
-    if (result.ok) {
-      close();
-    } else {
-      setError(result.error);
-    }
+    if (result.ok) onClose();
+    else setError(result.error);
   }
 
-  if (!isOpen) {
-    return (
-      <div className="flex justify-end border-b py-2">
-        <Button size="sm" variant="outline" onClick={() => setIsOpen(true)}>
-          New folder
-        </Button>
-      </div>
-    );
-  }
+  if (!isOpen) return null;
 
   return (
-    <div className="flex items-start gap-2 border-b py-2">
+    <div className="flex items-start gap-2">
       <div className="flex-1">
         <Input
           autoFocus
@@ -51,14 +44,14 @@ export function NewFolderRow({
           onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") submit();
-            if (event.key === "Escape") close();
+            if (event.key === "Escape") onClose();
           }}
           disabled={isPending}
           className="h-8"
         />
         {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
       </div>
-      <Button size="sm" variant="outline" onClick={close} disabled={isPending}>
+      <Button size="sm" variant="outline" onClick={onClose} disabled={isPending}>
         Cancel
       </Button>
       <Button size="sm" onClick={submit} disabled={isPending} className="relative">
