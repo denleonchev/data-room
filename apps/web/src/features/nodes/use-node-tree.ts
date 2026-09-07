@@ -1,5 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { BreadcrumbDto, NodeDto } from "@data-room/shared";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
+import type { BreadcrumbDto, ChildStatsDto, NodeDto } from "@data-room/shared";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -44,6 +49,11 @@ const fetchBreadcrumb = (id: string) =>
 
 const fetchSubtreeStats = (id: string) =>
   request<SubtreeStats>(`/nodes/${id}/subtree-stats`);
+
+const fetchChildStats = (parentId?: string) =>
+  request<ChildStatsDto[]>(
+    parentId ? `/nodes/child-stats?parentId=${parentId}` : "/nodes/child-stats",
+  );
 
 const postFolder = (parentId: string, name: string) =>
   request<NodeDto>("/folders", {
@@ -93,12 +103,32 @@ export function useSubtreeStats(nodeId?: string) {
   });
 }
 
+// A node added, removed or moved anywhere changes the numbers in listings the
+// user may not have open — one cheap query each, so drop them all rather than
+// work out which ancestor was affected.
+export function invalidateChildStats(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({
+    predicate: (query) => query.queryKey[0] === "child-stats",
+  });
+}
+
+// One request for the whole listing, keyed like useNodeChildren so the two
+// invalidate together.
+export function useChildStats(parentId?: string) {
+  return useQuery({
+    queryKey: ["child-stats", parentId],
+    queryFn: () => fetchChildStats(parentId),
+    enabled: !!parentId,
+  });
+}
+
 export function useCreateFolder(currentFolderId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (name: string) => postFolder(currentFolderId!, name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nodes", currentFolderId] });
+      invalidateChildStats(queryClient);
     },
   });
 }
@@ -141,6 +171,7 @@ export function useMoveNode(currentFolderId: string | undefined) {
     onSettled: (_data, _err, { parentId }) => {
       queryClient.invalidateQueries({ queryKey: ["nodes", currentFolderId] });
       queryClient.invalidateQueries({ queryKey: ["nodes", parentId] });
+      invalidateChildStats(queryClient);
     },
   });
 }
@@ -163,6 +194,7 @@ export function useDeleteNode(currentFolderId: string | undefined) {
     onSettled: (_data, _err, id) => {
       queryClient.invalidateQueries({ queryKey: ["nodes", currentFolderId] });
       queryClient.invalidateQueries({ queryKey: ["subtree-stats", id] });
+      invalidateChildStats(queryClient);
     },
   });
 }

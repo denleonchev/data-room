@@ -74,3 +74,10 @@ export interface SubtreeStatsDto {
   folders: number;
   files: number;
 }
+
+// What sits under one folder, keyed by that folder's id. The whole listing's
+// worth arrives in one response: a request per row is what this replaces.
+export interface ChildStatsDto extends SubtreeStatsDto {
+  id: string;
+  bytes: number;
+}
