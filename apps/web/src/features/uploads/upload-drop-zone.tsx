@@ -1,5 +1,4 @@
-import { useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, type DragEvent, type ReactNode } from "react";
 
 export function UploadDropZone({
   onFilesSelected,
@@ -9,7 +8,6 @@ export function UploadDropZone({
   children: ReactNode;
 }) {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   function handleDragOver(event: DragEvent<HTMLDivElement>) {
     if (!event.dataTransfer.types.includes("Files")) return;
@@ -30,13 +28,6 @@ export function UploadDropZone({
     }
   }
 
-  function handlePick(event: ChangeEvent<HTMLInputElement>) {
-    if (event.target.files && event.target.files.length > 0) {
-      onFilesSelected(Array.from(event.target.files));
-    }
-    event.target.value = "";
-  }
-
   return (
     <div
       onDragOver={handleDragOver}
@@ -44,20 +35,6 @@ export function UploadDropZone({
       onDrop={handleDrop}
       className="relative"
     >
-      <div className="mb-2 flex justify-end">
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          accept="application/pdf"
-          onChange={handlePick}
-          className="hidden"
-        />
-        <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()}>
-          Upload files
-        </Button>
-      </div>
-
       {children}
 
       {isDraggingOver && (

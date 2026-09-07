@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, type ReactNode } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Check, FileText, Folder, MoreVertical, X } from "lucide-react";
 import {
   createColumnHelper,
@@ -25,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatFileSize } from "@/lib/format";
+import { formatFileSize, formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { MutationResult } from "./use-node-tree";
 
@@ -66,7 +66,8 @@ export function NodeTable({
   onDelete,
   onOpenFile,
   folderHref = (id) => `/folder/${id}`,
-  emptyMessage = 'This folder is empty. Drag files here, or use "Upload files" above, to add some.',
+  emptyMessage = "This folder is empty.",
+  emptyState,
 }: {
   nodes: NodeDto[];
   childStats?: ChildStatsDto[];
@@ -80,7 +81,9 @@ export function NodeTable({
   onOpenFile: (node: NodeDto) => void;
   folderHref?: (id: string) => string;
   emptyMessage?: string;
+  emptyState?: ReactNode;
 }) {
+  const navigate = useNavigate();
   const statsById = childStats && new Map(childStats.map((entry) => [entry.id, entry]));
   const contentsOf = (node: NodeDto): ChildStatsDto | undefined =>
     node.type === "FOLDER" && statsById
@@ -156,6 +159,7 @@ export function NodeTable({
             <div className="flex items-center gap-2">
               <Link
                 to={folderHref(node.id)}
+                onClick={(event) => event.stopPropagation()}
                 className="flex items-center gap-2 font-medium hover:underline"
               >
                 <NodeIcon type={node.type} />
@@ -213,8 +217,11 @@ export function NodeTable({
         row.original.status === "PENDING" ? (
           <span className="text-muted-foreground">Uploading…</span>
         ) : (
-          <span className="text-muted-foreground">
-            {dateFormatter.format(new Date(getValue()))}
+          <span
+            className="whitespace-nowrap text-muted-foreground"
+            title={dateFormatter.format(new Date(getValue()))}
+          >
+            {formatRelativeTime(getValue())}
           </span>
         ),
     }),
@@ -322,9 +329,11 @@ export function NodeTable({
 
   if (nodes.length === 0) {
     return (
-      <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-        {emptyMessage}
-      </div>
+      emptyState ?? (
+        <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+          {emptyMessage}
+        </div>
+      )
     );
   }
 
@@ -338,7 +347,7 @@ export function NodeTable({
                 key={header.id}
                 className={cn(
                   header.id === "size" && "w-24 text-right",
-                  header.id === "updatedAt" && "w-32",
+                  header.id === "updatedAt" && "w-28",
                   header.id === "actions" && "w-28",
                 )}
               >
@@ -351,18 +360,35 @@ export function NodeTable({
         ))}
       </TableHeader>
       <TableBody>
-        {table.getRowModel().rows.map((row) => (
-          <TableRow key={row.id} className="group">
-            {row.getVisibleCells().map((cell) => (
-              <TableCell
-                key={cell.id}
-                className={cn(cell.column.id === "size" && "text-right")}
-              >
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </TableCell>
-            ))}
-          </TableRow>
-        ))}
+        {table.getRowModel().rows.map((row) => {
+          const node = row.original;
+          // The row already highlights on hover; without this the highlight
+          // promises a click that only the name honours.
+          const opensFolder =
+            node.type === "FOLDER" && node.status !== "PENDING" && editingId !== node.id;
+          return (
+            <TableRow
+              key={row.id}
+              className={cn("group", opensFolder && "cursor-pointer")}
+              onClick={opensFolder ? () => navigate(folderHref(node.id)) : undefined}
+            >
+              {row.getVisibleCells().map((cell) => (
+                <TableCell
+                  key={cell.id}
+                  className={cn(cell.column.id === "size" && "text-right")}
+                  // The row menu lives inside a row that navigates on click.
+                  onClick={
+                    cell.column.id === "actions"
+                      ? (event) => event.stopPropagation()
+                      : undefined
+                  }
+                >
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );

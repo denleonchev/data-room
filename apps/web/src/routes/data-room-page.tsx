@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import type { NodeDto, SessionUser } from "@data-room/shared";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
   useRenameNode,
   useSubtreeStats,
 } from "@/features/nodes/use-node-tree";
+import { UploadButton } from "@/features/uploads/upload-button";
 import { UploadDropZone } from "@/features/uploads/upload-drop-zone";
 import { UploadQueue } from "@/features/uploads/upload-queue";
 import { useUploadQueue } from "@/features/uploads/use-upload-queue";
@@ -47,6 +49,7 @@ export function DataRoomPage() {
   const subtreeStats = useSubtreeStats(deleteTarget?.id);
 
   const [moveTarget, setMoveTarget] = useState<NodeDto | null>(null);
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
   const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(
     null,
@@ -155,9 +158,32 @@ export function DataRoomPage() {
       dataRoom.data !== undefined &&
       breadcrumb.data[0]?.id === dataRoom.data.id);
 
+  const isEmpty = (children.data?.length ?? 0) === 0;
+
+  // Only one thing above the table genuinely has to wait: whether this folder
+  // is mine or shared with me, which decides if the write buttons belong here
+  // at all. The rows keep their height so filling them shifts nothing.
+  const isOwnershipKnown = !folderId || (breadcrumb.data !== undefined && dataRoom.data !== undefined);
+
+  const emptyState = isOwn ? (
+    <div className="flex flex-col items-center gap-3 rounded-md border border-dashed p-10 text-center">
+      <FolderOpen className="size-8 text-muted-foreground" aria-hidden="true" />
+      <div className="space-y-1">
+        <p className="font-medium">
+          {folderId ? "This folder is empty" : "This data room is empty"}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Drag PDFs here, or upload from your computer
+        </p>
+      </div>
+      <UploadButton size="sm" onFilesSelected={uploads.addFiles} />
+    </div>
+  ) : undefined;
+
   const table = (
     <NodeTable
       nodes={children.data ?? []}
+      emptyState={emptyState}
       childStats={childStats.data}
       isLoading={!currentId || children.isLoading}
       errorMessage={null}
@@ -172,29 +198,54 @@ export function DataRoomPage() {
 
   return (
     <div className="space-y-4">
-      <Breadcrumbs
-        path={path ?? []}
-        rootHref={isOwn ? "/" : `/folder/${path?.[0]?.id ?? ""}`}
-      />
-      <div className="flex items-center gap-3">
-        <h1 className="text-xl font-semibold">{title}</h1>
-        {!isOwn && title && (
+      {/* At the root the breadcrumb would be the title repeated; inside a folder
+          the breadcrumb's last entry is the title, so no heading either. */}
+      <div className="flex min-h-7 items-center">
+        {folderId ? (
+          <Breadcrumbs
+            path={path ?? []}
+            rootHref={isOwn ? "/" : `/folder/${path?.[0]?.id ?? ""}`}
+          />
+        ) : (
+          <h1 className="text-xl font-semibold">{title}</h1>
+        )}
+      </div>
+      <div className="flex min-h-8 flex-wrap items-center gap-2">
+        {isOwnershipKnown && !isOwn && (
           <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
             View only
           </span>
         )}
-        {isOwn && currentId && title && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShareTarget({ id: currentId, name: title })}
-          >
-            Share
-          </Button>
+        {isOwnershipKnown && isOwn && currentId && (
+          <>
+            <UploadButton size="sm" onFilesSelected={uploads.addFiles} />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsCreatingFolder(true)}
+              disabled={isCreatingFolder}
+            >
+              New folder
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShareTarget({ id: currentId, name: title ?? "" })}
+            >
+              Share
+            </Button>
+          </>
         )}
       </div>
 
-      {isOwn && <NewFolderRow isPending={createFolder.isPending} onCreate={handleCreate} />}
+      {isOwn && (
+        <NewFolderRow
+          isOpen={isCreatingFolder}
+          isPending={createFolder.isPending}
+          onCreate={handleCreate}
+          onClose={() => setIsCreatingFolder(false)}
+        />
+      )}
 
       {isOwn && (
         <UploadQueue
@@ -206,7 +257,14 @@ export function DataRoomPage() {
       )}
 
       {isOwn ? (
-        <UploadDropZone onFilesSelected={uploads.addFiles}>{table}</UploadDropZone>
+        <UploadDropZone onFilesSelected={uploads.addFiles}>
+          {table}
+          {!isEmpty && (
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              Drag PDFs here to upload
+            </p>
+          )}
+        </UploadDropZone>
       ) : (
         table
       )}
