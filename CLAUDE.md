@@ -1,6 +1,6 @@
 # Data Room
 
-Requirements: docs/task.md. Architecture decisions + rationale: docs/architecture.md.
+Requirements: docs/scope.md. Architecture decisions + rationale: docs/architecture.md.
 Rules below take precedence.
 
 ## Stack (see docs/architecture.md for rationale)
@@ -29,7 +29,7 @@ Rules below take precedence.
 ## Priorities
 
 UX and edge cases > visual polish > code quality. Ship working slices end-to-end.
-Don't build features not in docs/task.md, even if they seem obviously useful.
+Don't build features not in docs/scope.md, even if they seem obviously useful.
 
 ## Docs
 
