@@ -15,6 +15,10 @@ async function bootstrap() {
     bodyParser: false,
   });
 
+  // Caddy sits in front on the same host, so without this every request
+  // carries its IP and the per-IP throttle becomes one limit for everyone.
+  app.set("trust proxy", 1);
+
   app.use(helmet());
   app.use(compression());
 
