@@ -58,7 +58,7 @@ Not every slice has all five.
 
 ## S0 · Infra (done)
 
-pnpm workspaces monorepo, NestJS on Railway + Vite SPA on Vercel, custom domains,
+pnpm workspaces monorepo, NestJS on AWS EC2 + Vite SPA on Vercel, custom domains,
 CORS, GitHub Actions CI, `/health` end-to-end from the deployed frontend.
 Shipped as [#2](https://github.com/denleonchev/data-room/pull/2)–[#5](https://github.com/denleonchev/data-room/pull/5).
 

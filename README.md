@@ -16,7 +16,7 @@ Full diagram + rationale in [docs/architecture.md](docs/architecture.md).
 ```mermaid
 flowchart TB
     SPA["React SPA<br/>data.bonadev.xyz<br/>(Vercel)"]
-    API["NestJS API<br/>api.data.bonadev.xyz<br/>(Railway)"]
+    API["NestJS API<br/>api.data.bonadev.xyz<br/>(AWS EC2)"]
     PG[("Postgres<br/>(Supabase)")]
     Storage[("Storage<br/>(Supabase, private)")]
 
@@ -35,8 +35,8 @@ See [docs/architecture.md](docs/architecture.md) for full rationale.
 
 - Frontend: React (Vite SPA), TypeScript, Tailwind, Shadcn — hosted on Vercel at
   `data.bonadev.xyz`
-- Backend: NestJS — hosted on Railway at `api.data.bonadev.xyz`, called directly
-  (no proxy)
+- Backend: NestJS — Docker behind Caddy on AWS EC2 at
+  `api.data.bonadev.xyz`, called directly (no proxy); infra in Terraform
 - Database: Postgres via Supabase
 - File storage: Supabase Storage
 - Auth: Better Auth (Google OAuth2 + email/password), httpOnly cross-subdomain
@@ -44,8 +44,9 @@ See [docs/architecture.md](docs/architecture.md) for full rationale.
 - Package manager: pnpm
 - Frontend data: TanStack Query + TanStack Table
 - Monorepo: pnpm workspaces — `apps/web`, `apps/api`, `packages/shared`
-- CI/CD: Vercel/Railway auto-deploy on push to `main` (native git integration);
-  GitHub Actions runs typecheck/lint/tests as a required check on PRs
+- CI/CD: Vercel auto-deploys the web on push to `main`; a GitHub Actions
+  workflow deploys the API to EC2; GitHub Actions runs
+  typecheck/lint/tests as a required check on PRs
 
 ## Design decisions
 
@@ -64,8 +65,9 @@ Full rationale lives in [docs/architecture.md](docs/architecture.md). Summary:
   one shared sort/filter/pagination state; TanStack Query handles server state
 - pnpm workspaces monorepo (no Turborepo/Nx): `apps/web`, `apps/api`,
   `packages/shared` for types/DTOs/zod schemas shared between frontend and backend
-- Deploys are native Vercel/Railway git integration, not a GH Actions deploy
-  step; GitHub Actions only runs CI (typecheck/lint/tests), required on PRs
+- API on one EC2 instance (Docker + Caddy), cheapest AWS option, in
+  Supabase's region; deployed by a GH Actions workflow over OIDC and SSM,
+  since EC2 has no git integration; the web stays on Vercel's native git integration
 - File storage: private Supabase bucket, object key = `fileId`, client uploads
   directly to Storage via backend-issued signed URLs, authorization stays in
   Postgres (no Supabase Storage RLS policies)

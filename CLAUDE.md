@@ -6,7 +6,8 @@ Rules below take precedence.
 ## Stack (see docs/architecture.md for rationale)
 
 - Domain: bonadev.xyz. Frontend: Vite SPA (not Next/TanStack Start), Vercel,
-  `data.bonadev.xyz`. Backend: NestJS on Railway, `api.data.bonadev.xyz` —
+  `data.bonadev.xyz`. Backend: NestJS on AWS EC2 with Docker + Caddy
+  (eu-west-1, Terraform in `infra/`), `api.data.bonadev.xyz` —
   frontend calls it directly, no proxy.
 - DB + file storage: Supabase (Postgres + Storage).
 - Auth: Better Auth (not Passport), Google OAuth2 + email/password, httpOnly
@@ -18,7 +19,9 @@ Rules below take precedence.
 - Monorepo: pnpm workspaces, no Turborepo/Nx. `apps/web`, `apps/api`,
   `packages/shared` (shared TS types/DTOs/zod schemas — validate once, use on
   both sides).
-- CD via native Vercel/Railway git integration (no GH Actions deploy step).
+- CD: web via native Vercel git integration; API via its own GH Actions
+  workflow (image → ECR, SSM Run Command on the instance, OIDC, env from
+  SSM Parameter Store).
   CI (typecheck/lint/tests) is a required GitHub Actions check on PRs into
   `main`, even solo.
 - File storage: private Supabase bucket, object key = `fileId` (not

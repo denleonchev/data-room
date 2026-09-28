@@ -8,3 +8,8 @@ apps/api/src/generated/
 *.log
 .DS_Store
 docs/task.md
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+infra/*.tfplan

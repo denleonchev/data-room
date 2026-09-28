@@ -15,8 +15,8 @@ flowchart TB
         Web["apps/web<br/>static build"]
     end
 
-    subgraph RailwayBox["Railway"]
-        API["apps/api<br/>NestJS · api.data.bonadev.xyz"]
+    subgraph AWSBox["AWS EC2 · eu-west-1"]
+        API["apps/api<br/>NestJS behind Caddy · api.data.bonadev.xyz"]
     end
 
     subgraph SupabaseBox["Supabase"]
@@ -40,12 +40,37 @@ Postgres. Everything else (folders, sharing, metadata) goes through the API.
 
 ## Hosting
 
-| Component           | Where                           | Why                                                                            |
-| ------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
-| Frontend            | Vercel, `data.bonadev.xyz`      | Recommended by the task; standard fit for a React/Next app                     |
-| Backend (NestJS)    | Railway, `api.data.bonadev.xyz` | Simple Node deploy from git, generous free tier                                |
-| Database (Postgres) | Supabase                        | Managed, no separate provisioning needed                                       |
-| File storage        | Supabase Storage                | S3-compatible, lives next to the DB, avoids standing up a separate AWS account |
+| Component           | Where                           | Why                                                                |
+| ------------------- | ------------------------------- | ------------------------------------------------------------------ |
+| Frontend            | Vercel, `data.bonadev.xyz`      | Recommended by the task; standard fit for a React/Next app         |
+| Backend (NestJS)    | AWS EC2, `api.data.bonadev.xyz` | One small instance with Docker, cheapest option (see below)        |
+| Database (Postgres) | Supabase                        | Managed, no separate provisioning needed                           |
+| File storage        | Supabase Storage                | S3-compatible, lives next to the DB, no bucket to provision on AWS |
+
+**The API runs on one EC2 instance** (`t3.micro`, Amazon Linux 2023) with
+Docker: the API container behind Caddy, which terminates TLS with a Let's
+Encrypt certificate. An Elastic IP keeps `api.data.bonadev.xyz`'s A record
+stable across instance replacements. Roughly $12/month with the public IPv4
+address. Considered and rejected:
+
+- **App Runner** — closed to new customers since April 2026.
+- **ECS Express Mode** — App Runner's successor, but its ALB alone costs
+  ~$16–25/month with zero traffic; one container doesn't need it.
+- **Lightsail Containers** — the first choice, but this account's container
+  service quota is zero, and raising it goes through a support case.
+
+The price of a plain instance is running it ourselves: security updates apply
+nightly through `dnf-automatic`, containers restart with Docker's
+`unless-stopped` policy, and a deploy replaces the container in place — a few
+seconds of downtime, accepted over blue/green's extra moving parts. There is
+no SSH: both shell access and deploys go through SSM, so only ports 80 and 443
+are open.
+
+The instance sits in **eu-west-1, the Supabase project's region**: every
+authenticated request can reach Postgres, and a region mismatch shows up
+directly as ~1 s of API latency. Infrastructure is Terraform in
+[`infra/`](../infra). Caddy is one proxy hop in front of Nest, hence
+`trust proxy` — without it the per-IP throttle sees one IP for everyone.
 
 Decided against Supabase Auth even though Supabase is already in the stack: the task
 explicitly names NestJS + Postgres + Prisma as the expected stack, and rolling our own
@@ -161,15 +186,16 @@ flowchart LR
     PR["push to PR branch"] --> CI["GitHub Actions<br/>typecheck · lint · test"]
     CI -- "required check passes" --> Merge["merge to main"]
     Merge -- "apps/web or<br/>packages/shared changed" --> Vercel["Vercel<br/>auto-deploy"]
-    Merge -- "apps/api or<br/>packages/shared changed" --> Railway["Railway<br/>auto-deploy + migrate"]
+    Merge -- "apps/api or<br/>packages/shared changed" --> Deploy["GitHub Actions<br/>build image → ECR"]
+    Deploy -- "SSM Run Command" --> EC2["EC2<br/>migrate + replace container"]
 ```
 
-Deployment and CI are kept separate — deployment doesn't run through GitHub
-Actions at all:
+The web deploys through Vercel's native git integration; the API, which has
+no native git integration on EC2, deploys through its own GitHub Actions
+workflow. CI stays a separate workflow either way. Both sides must rebuild when
+`packages/shared` changes, not just when their own app dir changes:
 
-- **CD**: native git integrations, no custom deploy scripts. Both sides must
-  rebuild when `packages/shared` changes, not just when their own app dir
-  changes:
+- **CD**:
   - Vercel: root directory `apps/web`, auto-deploys on push to `main`, preview
     deployment per PR. Ignored Build Step set to
     `git diff --quiet HEAD^ HEAD -- . ../../packages/shared` — runs with cwd =
@@ -180,26 +206,29 @@ Actions at all:
     only touches `apps/api`, exits non-zero (build) when `apps/web` or
     `packages/shared` changed — both paths are in the command, so a
     shared-only change still triggers a web rebuild.
-  - Railway: **no Root Directory override** — service Source stays at the repo
-    root, config lives in `railway.json` at the repo root (not inside
-    `apps/api`), and `buildCommand`/`startCommand` use `pnpm --filter <pkg>`
-    from the repo root rather than a Root-Directory-scoped `cd`/`-C`. Watch
-    paths explicitly include `packages/shared` (unlike Vercel, Railway needs this
-    listed or a shared-only change won't trigger an API redeploy). Builds via
-    Railway's Nixpacks (auto-detects Node/pnpm, no Dockerfile to write/
-    maintain) — install phase stays on Nixpacks' default, `buildCommand`
-    explicitly builds `packages/shared` then `apps/api`. Falls back to a
-    hand-written Dockerfile only if Nixpacks can't handle that.
-  - Migrations: `prisma migrate deploy` runs as part of Railway's start command,
-    before the server boots — not a separate CI step.
+  - API: `.github/workflows/deploy-api.yml`, on push to `main` touching
+    `apps/api`, `packages/shared`, the lockfile, the `Dockerfile` or
+    `infra/deploy.sh`. It builds the repo-root `Dockerfile` (multi-stage;
+    `pnpm deploy` packs the API with prod deps only and `packages/shared` as a
+    real copy), pushes it to ECR, and runs `infra/deploy.sh` on the instance
+    through SSM Run Command — the script travels with the command, so the
+    instance always runs this commit's version. It authenticates through
+    GitHub OIDC into a role that only `main` can assume — no long-lived AWS
+    keys in the repo. The API's environment lives in Parameter Store under
+    `/data-room/api`, read by the instance itself, so secrets stay out of
+    GitHub, the repo and Terraform state. If the new container never passes
+    `GET /health`, the job fails with its logs.
+  - Migrations: `prisma migrate deploy` runs as a one-off container before the
+    old API container is replaced — a failed migration aborts the deploy with
+    the old one still serving.
 - **CI**: a GitHub Actions workflow (`pnpm install` → build → typecheck → lint →
   tests) runs on every PR. The tests are unit tests over dependency-free code —
   name rules, path arithmetic — so CI needs no database. Tests that need a real
   Postgres arrive with the sharing rules, where a silent mistake shows someone
   else's documents and is worth a service container. Even solo, work happens
   through PRs into `main` with branch protection requiring this check to pass —
-  catches breakage before it reaches `main`, where Vercel/Railway would otherwise
-  deploy it immediately.
+  catches breakage before it reaches `main`, where Vercel and the deploy workflow
+  would otherwise ship it immediately.
 
 ## File storage (Supabase Storage)
 
@@ -214,7 +243,7 @@ Actions at all:
 - **Upload goes client → Storage directly**, not through the backend: client
   requests a signed upload URL for a given `fileId`, PUTs the file straight to
   Supabase Storage, then confirms completion to the backend. Keeps file bytes off
-  the Railway process (memory/bandwidth) and gives real per-file progress via the
+  the API container (memory/bandwidth) and gives real per-file progress via the
   upload request itself.
 - **One bucket for the whole app**, not one per Data Room — granularity of access
   lives in Postgres rows, not in bucket structure.
